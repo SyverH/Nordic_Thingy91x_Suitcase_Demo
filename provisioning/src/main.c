@@ -19,6 +19,9 @@
 #include <dk_buttons_and_leds.h>
 #include <net/softap_wifi_provision.h>
 
+#include <zephyr/net/http/server.h>
+#include <zephyr/net/http/service.h>
+
 #include <net/wifi_credentials.h>
 
 LOG_MODULE_REGISTER(softap_wifi_provision_sample, LOG_LEVEL_DBG);
@@ -37,6 +40,33 @@ LOG_MODULE_REGISTER(softap_wifi_provision_sample, LOG_LEVEL_DBG);
 /* Callbacks for Zephyr NET management events. */
 static struct net_mgmt_event_callback l4_cb;
 static struct net_mgmt_event_callback conn_cb;
+
+///////////////////////////////////////////////////////////////////////////////
+// HTTP data
+
+static uint16_t	test_http_service_port = 80;
+HTTP_SERVICE_DEFINE(test_http_service, NULL, &test_http_service_port, 1,
+		    10, NULL);
+
+static const uint8_t index_html_gz[] = {
+    #include "index.html.gz.inc"
+};
+
+struct http_resource_detail_static index_html_gz_resource_detail = {
+    .common = {
+        .type = HTTP_RESOURCE_TYPE_STATIC,
+        .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+        .content_encoding = "gzip",
+		.content_type = "text/html",
+    },
+    .static_data = index_html_gz,
+    .static_data_len = sizeof(index_html_gz),
+};
+
+HTTP_RESOURCE_DEFINE(index_html_gz_resource, test_http_service, "/",
+		     &index_html_gz_resource_detail);
+
+///////////////////////////////////////////////////////////////////////////////
 
 static void l4_event_handler(struct net_mgmt_event_callback *cb,
 			     uint32_t event,
@@ -279,6 +309,8 @@ int main(void)
 
 	if (provisioning_completed) {
 		psm_set();
+        LOG_WRN("HTTP server staring");
+        http_server_start();
 	}
 
 	return 0;
