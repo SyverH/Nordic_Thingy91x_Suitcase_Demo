@@ -13,15 +13,18 @@ let accel0_chart = new Highcharts.Chart({
     series: [{
         name: 'X',
         color: 'red',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }, {
         name: 'Y',
         color: 'green',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }, {
         name: 'Z',
         color: 'blue',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }],
     xAxis: {
         title: {
@@ -77,15 +80,18 @@ let gyro0_chart = new Highcharts.Chart({
     series: [{
         name: 'X',
         color: 'red',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }, {
         name: 'Y',
         color: 'green',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }, {
         name: 'Z',
         color: 'blue',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }],
     xAxis: {
         title: {
@@ -109,7 +115,8 @@ let temp_chart = new Highcharts.Chart({
     series: [{
         name: 'Temperature',
         color: 'red',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }],
     xAxis: {
         title: {
@@ -133,7 +140,8 @@ let hum_chart = new Highcharts.Chart({
     series: [{
         name: 'Humidity',
         color: 'blue',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }],
     xAxis: {
         title: {
@@ -157,7 +165,8 @@ let press_chart = new Highcharts.Chart({
     series: [{
         name: 'Pressure',
         color: 'green',
-        data: []
+        data: [], 
+        marker: {enabled: false}
     }],
     xAxis: {
         title: {
