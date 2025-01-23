@@ -36,4 +36,5 @@ endforeach()
 
 target_sources(app PRIVATE
 	src/main.c
+    src/sensors.c
 )

@@ -262,7 +262,7 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     }
 
 	ws.onmessage = (event) => {
-        console.log("Received data");
+        // console.log("Received data");
 		const data = JSON.parse(event.data);
         setSensorData(data, "adxl_ax");
         setSensorData(data, "adxl_ay");
