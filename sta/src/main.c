@@ -314,7 +314,8 @@ static void parse_led_post(uint8_t *buf, size_t len)
 
 	LOG_INF("POST request setting LED %d to state %d", cmd.led_num, cmd.led_state);
 
-	ret = dk_set_leds_state(1 << cmd.led_num, cmd.led_state);
+	// ret = dk_set_leds_state(1 << cmd.led_num, cmd.led_state);
+    ret = dk_set_led(cmd.led_num, cmd.led_state);
 	if (ret) {
 		LOG_ERR("Failed to set LED state");
 	}
