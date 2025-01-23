@@ -22,6 +22,8 @@ set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
 foreach(web_resource
   index.html
   main.js
+  # color_wheel.svg
+  Logo_Flat_RGB_Horizontal.svg
     )
   generate_inc_file_for_target(
     app

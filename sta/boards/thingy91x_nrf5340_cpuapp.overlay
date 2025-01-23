@@ -55,9 +55,9 @@
 	accel: accelerometer_lp: adxl367@1d {
 		status = "okay";
 	};
-	magnetometer: bmm350@14 {
-		status = "okay";
-	};
+	// magnetometer: bmm350@14 {
+	// 	status = "okay";
+	// };
 };
 
 &pmic_main {

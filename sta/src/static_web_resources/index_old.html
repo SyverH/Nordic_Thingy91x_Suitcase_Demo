@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Zephyr HTTP Server</title>
+</head>
+<body>
+    <h1>Welcome to Zephyr HTTP Server!</h1>
+    <p>This is a simple HTML file.</p>
+
+    <h4>LED Control</h4>
+    <p>The buttons below toggle the LED on the board</p>
+    <div>
+        <input id="red_led_on" type="button" value="Red LED on">
+        <input id="red_led_off" type="button" value="Red LED off">
+    </div>
+    <div>
+        <input id="green_led_on" type="button" value="Green LED on">
+        <input id="green_led_off" type="button" value="Green LED off">
+    </div>
+    <div>
+        <input id="blue_led_on" type="button" value="Blue LED on">
+        <input id="blue_led_off" type="button" value="Blue LED off">
+    </div>
+
+    <div>
+        <h3>Sensor data</h3>
+        <h4>ADXL367</h4>
+            <p>Ax = <span id="adxl_ax">0</span></p>
+            <p>Ay = <span id="adxl_ay">0</span></p>
+            <p>Az = <span id="adxl_az">0</span></p>
+        <h4>BME680</h4>
+            <p>Temperature = <span id="bme680_temperature">0</span></p>
+            <p>Pressure = <span id="bme680_pressure">0</span></p>
+            <p>Humidity = <span id="bme680_humidity">0</span></p>
+            <p>Gas = <span id="bme680_gas">0</span></p>
+        <h4>BMI270</h4>
+            <p>Gx = <span id="bmi270_gx">0</span></p>
+            <p>Gy = <span id="bmi270_gy">0</span></p>
+            <p>Gz = <span id="bmi270_gz">0</span></p>
+            <p>Ax = <span id="bmi270_ax">0</span></p>
+            <p>Ay = <span id="bmi270_ay">0</span></p>
+            <p>Az = <span id="bmi270_az">0</span></p>
+    </div>
+    <div id="chart_div">
+        <div id="chart_accel0" class="container"></div>
+        <div id="chart_accel1" class="container"></div>
+        <div id="chart_gyro0" class="container"></div>
+        <div id="chart_temp" class="container"></div>
+        <div id="chart_humidity" class="container"></div>
+        <div id="chart_pressure" class="container"></div>
+        <div id="chart_gas" class="container"></div>
+    </div>
+    
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
