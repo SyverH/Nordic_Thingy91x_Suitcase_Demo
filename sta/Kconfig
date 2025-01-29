@@ -33,6 +33,18 @@ config NET_SAMPLE_WEBSOCKET_SENSOR_INTERVAL
 
 endmenu # HTTP2 server sample application
 
+menu "Logging"
+
+    module = WIFI_STA
+    module-str = wifi_sta
+    source "subsys/logging/Kconfig.template.log_config"
+
+    module = SENSORS
+    module-str = sensors
+    source "subsys/logging/Kconfig.template.log_config"
+
+endmenu # Log levels
+
 menu "Nordic Sta sample"
 
 config CONNECTION_IDLE_TIMEOUT

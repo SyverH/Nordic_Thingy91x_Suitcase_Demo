@@ -11,12 +11,14 @@ project(nrf_wifi_sta)
 
 target_include_directories(app PUBLIC ${ZEPHYR_BASE}/subsys/net/ip)
 
+# Add http service
 zephyr_linker_sources(SECTIONS sections-rom.ld)
 zephyr_linker_section_ifdef(CONFIG_NET_SAMPLE_HTTP_SERVICE NAME
 				http_resource_desc_test_http_service
 				KVMA RAM_REGION GROUP RODATA_REGION
 				SUBALIGN Z_LINK_ITERABLE_SUBALIGN)
 
+# Add static web resources
 set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
 
 foreach(web_resource
@@ -33,10 +35,10 @@ foreach(web_resource
   )
 endforeach()
 
-# set(source_file_index src/static_web_resources/index.html)
-# generate_inc_file_for_target(app ${source_file_index} ${gen_dir}/index.html.gz.inc --gzip)
 
 target_sources(app PRIVATE
 	src/main.c
     src/sensors.c
+    src/http_resources.c
+    src/wifi_sta.c
 )

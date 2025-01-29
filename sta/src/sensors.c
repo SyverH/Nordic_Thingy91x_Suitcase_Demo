@@ -1,7 +1,7 @@
 #include "sensors.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(sensors, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(SENSORS, CONFIG_SENSORS_LOG_LEVEL);
 
 const struct device *dev_bmi270 = DEVICE_DT_GET(DT_ALIAS(accel0));
 const struct device *dev_adxl367 = DEVICE_DT_GET(DT_ALIAS(accel1));
@@ -153,7 +153,7 @@ int sensors_init(void)
  *
  * @return 0 if successful, negative error code otherwise.
  */
-int sensor_meassure(double *data)
+int sensor_measure(double *data)
 {
 	int ret;
 	struct sensor_value accel0[3], gyr[3];
@@ -317,9 +317,9 @@ int sensors_get_json(char *buf, size_t len)
 					    "}";
 
 	double data[17];
-	ret = sensor_meassure(data);
+	ret = sensor_measure(data);
 	if (ret) {
-		LOG_ERR("sensor_meassure failed ret %d", ret);
+		LOG_ERR("sensor_measure failed ret %d", ret);
 		return ret;
 	}
 
