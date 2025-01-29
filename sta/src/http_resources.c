@@ -55,23 +55,23 @@ HTTP_RESOURCE_DEFINE(main_js_gz_resource, test_http_service, "/main.js",
 ////////////////// Color Wheel svg //////////////////
 // This is an image to be displayed in the browser.
 
-// static const uint8_t color_wheel_png_gz[] = {
-// 	#include "color_wheel.svg.gz.inc"
-// };
+static const uint8_t color_wheel_png_gz[] = {
+	#include "color_wheel.svg.gz.inc"
+};
 
-// struct http_resource_detail_static color_wheel_png_gz_resource_detail = {
-//     .common = {
-//         .type = HTTP_RESOURCE_TYPE_STATIC,
-//         .bitmask_of_supported_http_methods = BIT(HTTP_GET),
-//         .content_encoding = "gzip",
-// 		.content_type = "image/svg+xml",
-//     },
-//     .static_data = color_wheel_png_gz,
-//     .static_data_len = sizeof(color_wheel_png_gz),
-// };
+struct http_resource_detail_static color_wheel_png_gz_resource_detail = {
+    .common = {
+        .type = HTTP_RESOURCE_TYPE_STATIC,
+        .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+        .content_encoding = "gzip",
+		.content_type = "image/svg+xml",
+    },
+    .static_data = color_wheel_png_gz,
+    .static_data_len = sizeof(color_wheel_png_gz),
+};
 
-// HTTP_RESOURCE_DEFINE(color_wheel_png_gz_resource, test_http_service, "/color_wheel.svg",
-// 		     &color_wheel_png_gz_resource_detail);
+HTTP_RESOURCE_DEFINE(color_wheel_png_gz_resource, test_http_service, "/color_wheel.svg",
+		     &color_wheel_png_gz_resource_detail);
 
 ////////////////// Logo Nordic svg //////////////////
 // This is an image to be displayed in the browser.
