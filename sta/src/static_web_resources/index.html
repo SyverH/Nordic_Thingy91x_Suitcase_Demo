@@ -180,7 +180,7 @@
     </div>
 
     <div class="led-control">
-        <h2>LED Control</h2>
+        <h2>PWM LED Control</h2>
         <div class="led-control-container">
             <div class="led-control-set">
                 <div class="color-picker-container">
@@ -188,24 +188,12 @@
                     <input type="color" id="color_picker" value="#000000">
                 </div>
             </div>
-            <!-- <div class="led-control-set">
-                <button id="red_led_on" class="led-red">LED ON</button>
-                <button id="red_led_off" class="led-red">LED OFF</button>
-            </div>
-            <div class="led-control-set">
-                <button id="green_led_on" class="led-green">LED ON</button>
-                <button id="green_led_off" class="led-green">LED OFF</button>
-            </div>
-            <div class="led-control-set">
-                <button id="blue_led_on" class="led-blue">LED ON</button>
-                <button id="blue_led_off" class="led-blue">LED OFF</button>
-            </div> -->
         </div>
     </div>
 
     <div class="sensor-section">
-        <h2>Sensor readings</h2>
-        <h3>Environment</h3>
+        <h2>Sensor Data</h2>
+        <h3>BME680 - Environmental Sensor</h3>
         <div class="sensor-container">
             <div class="sensor-value" id="temperature">Temperature: <span id="bme680_temperature"> - - </span> °C</div>
             <div class="sensor-value" id="humidity">Humidity: <span id="bme680_humidity"> - - </span> %</div>
@@ -218,22 +206,22 @@
             <div id="chart_pressure" class="container"></div>
         </div>
 
-        <h3>Accelerometer</h3>
+        <h3>BMI270 - Inertial Measurement Unit</h3>
         <div class="sensor-container">
-            <div class="sensor-value" id="acc_x">Ax: <span id="adxl_ax"> - - </span></div>
-            <div class="sensor-value" id="acc_y">Ay: <span id="adxl_ay"> - - </span></div>
-            <div class="sensor-value" id="acc_z">Az: <span id="adxl_az"> - - </span></div>
+            <div class="sensor-value" id="acc_x">X: <span id="adxl_ax"> - - </span></div>
+            <div class="sensor-value" id="acc_y">Y: <span id="adxl_ay"> - - </span></div>
+            <div class="sensor-value" id="acc_z">Z: <span id="adxl_az"> - - </span></div>
         </div>
 
         <div id="chart_div" style="display: flex; flex-direction: row; width: 100%;">
             <div id="chart_accel0" class="container"></div>
         </div>
 
-        <h3>Gyroscope</h3>
+        <!-- <h3>Gyroscope</h3> -->
         <div class="sensor-container">
-            <div class="sensor-value" id="gyro_x">Gyro X: <span id="bmi270_gx"> - - </span></div>
-            <div class="sensor-value" id="gyro_y">Gyro Y: <span id="bmi270_gy"> - - </span></div>
-            <div class="sensor-value" id="gyro_z">Gyro Z: <span id="bmi270_gz"> - - </span></div>
+            <div class="sensor-value" id="gyro_x">X: <span id="bmi270_gx"> - - </span></div>
+            <div class="sensor-value" id="gyro_y">Y: <span id="bmi270_gy"> - - </span></div>
+            <div class="sensor-value" id="gyro_z">Z: <span id="bmi270_gz"> - - </span></div>
         </div>
 
         <div class="sensor-container">

@@ -8,7 +8,7 @@ let accel0_chart = new Highcharts.Chart({
         renderTo: 'chart_accel0'
     },
     title: {
-        text: 'Accelerometer BMI270'
+        text: 'Accelerometer'
     },
     series: [{
         name: 'X',
@@ -75,7 +75,8 @@ let gyro0_chart = new Highcharts.Chart({
         renderTo: 'chart_gyro0'
     },
     title: {
-        text: 'Gyroscope BMI270'
+        // text: 'Gyroscope BMI270'
+        text: 'Gyroscope'
     },
     series: [{
         name: 'X',
