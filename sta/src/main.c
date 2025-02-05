@@ -15,10 +15,11 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/shell/shell.h>
-#include <zephyr/sys/printk.h>
 #include <zephyr/init.h>
 
 #include <dk_buttons_and_leds.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/pwm.h>
 
 #include <zephyr/data/json.h>
 
@@ -30,6 +31,42 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 #include "sensors.h"
 #include "http_resources.h"
 #include "wifi_sta.h"
+
+static const struct pwm_dt_spec red_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
+static const struct pwm_dt_spec green_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
+static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2));
+
+int pwm_set_color(int red, int green, int blue)
+{
+    int ret;
+
+    LOG_DBG("PWM_Color: Red: %d, Green: %d, Blue: %d \n", red, green, blue);
+    
+    // uint32_t period = red_pwm_led.period;
+    red = (red * red_pwm_led.period) / 255;
+    green = (green * green_pwm_led.period) / 255;
+    blue = (blue * blue_pwm_led.period) / 255;
+
+    ret = pwm_set_pulse_dt(&red_pwm_led, red);
+    if (ret != 0) {
+        LOG_ERR("Error %d: red write failed\n", ret);
+        return ret;
+    }
+
+    ret = pwm_set_pulse_dt(&green_pwm_led, green);
+    if (ret != 0) {
+        LOG_ERR("Error %d: green write failed\n", ret);
+        return ret;
+    }
+
+    ret = pwm_set_pulse_dt(&blue_pwm_led, blue);
+    if (ret != 0) {
+        LOG_ERR("Error %d: blue write failed\n", ret);
+        return ret;
+    }
+
+    return 0;
+}
 
 static void sensor_handler(struct k_work *work)
 {
@@ -126,18 +163,19 @@ static void parse_led_post(uint8_t *buf, size_t len)
 	struct led_command cmd;
 	const int expected_return_code = BIT_MASK(ARRAY_SIZE(led_command_descr));
 
+    LOG_DBG("Got POST request with payload: %s", buf);
+
 	ret = json_obj_parse(buf, len, led_command_descr, ARRAY_SIZE(led_command_descr), &cmd);
 	if (ret != expected_return_code) {
 		LOG_WRN("Failed to fully parse JSON payload, ret=%d", ret);
 		return;
 	}
 
-	LOG_INF("POST request setting LED %d to state %d", cmd.led_num, cmd.led_state);
+    ret = pwm_set_color(cmd.r, cmd.g, cmd.b);
+    if (ret) {
+        LOG_ERR("Failed to set LED color");
+    }
 
-	ret = dk_set_led(cmd.led_num, cmd.led_state);
-	if (ret) {
-		LOG_ERR("Failed to set LED state");
-	}
 }
 
 static int led_handler(struct http_client_ctx *client, enum http_data_status status,
@@ -193,17 +231,34 @@ static void wifi_connected_handler(void)
 {
 	LOG_INF("HTTP server staring");
 	http_server_start();
+
+    int ret = pwm_set_color(0, 255, 0);
+    if (ret) {
+        LOG_ERR("Failed to set LED color");
+    }
 }
 
 int main(void)
 {
 	int ret = 0;
 
-	ret = dk_leds_init();
-	if (ret != 0) {
-		LOG_ERR("Failed to initialize LEDs");
-		return -1;
+	// ret = dk_leds_init();
+	// if (ret != 0) {
+	// 	LOG_ERR("Failed to initialize LEDs");
+	// 	return -1;
+	// }
+
+    if (!pwm_is_ready_dt(&red_pwm_led) ||
+	    !pwm_is_ready_dt(&green_pwm_led) ||
+	    !pwm_is_ready_dt(&blue_pwm_led)) {
+		LOG_ERR("Error: one or more PWM devices not ready\n");
+		return 0;
 	}
+
+    ret = pwm_set_color(255, 0, 0);
+    if (ret) {
+        LOG_ERR("Failed to set LED color");
+    }
 
 	ret = dk_buttons_init(button_handler);
 	if (ret != 0) {

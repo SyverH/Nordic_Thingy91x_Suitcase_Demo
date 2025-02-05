@@ -35,3 +35,4 @@ west flash --erase
 - [ ] implement wifi positioning
 - [ ] implement bmm350 magnetometer (waiting for driver in zephyr)
 - [x] implement mDNS
+- [x] implement rgb led control

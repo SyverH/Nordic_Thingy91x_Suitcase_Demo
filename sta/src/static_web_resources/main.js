@@ -206,18 +206,37 @@ let press_chart = new Highcharts.Chart({
 
 
 
-async function postLed(led_id, state)
-{
-	try {
-		const payload = JSON.stringify({"led_num" : led_id, "led_state" : state});
+// async function postLed(led_id, state)
+// {
+// 	try {
+// 		const payload = JSON.stringify({"led_num" : led_id, "led_state" : state});
 
-		const response = await fetch("/led", {method : "POST", body : payload});
-		if (!response.ok) {
-			throw new Error(`Response satus: ${response.status}`);
-		}
-	} catch (error) {
-		console.error(error.message);
-	}
+// 		const response = await fetch("/led", {method : "POST", body : payload});
+// 		if (!response.ok) {
+// 			throw new Error(`Response satus: ${response.status}`);
+// 		}
+// 	} catch (error) {
+// 		console.error(error.message);
+// 	}
+// }
+
+async function postRgbLed(hex_color)
+{
+    let r = parseInt(hex_color.slice(1, 3), 16);
+    let g = parseInt(hex_color.slice(3, 5), 16);
+    let b = parseInt(hex_color.slice(5, 7), 16);
+
+    try {
+        const payload = JSON.stringify({"r" : r, "g" : g, "b" : b});
+
+        const response = await fetch("/led", {method : "POST", body : payload});
+        if (!response.ok) {
+            throw new Error(`Response satus: ${response.status}`);
+        }
+    }
+    catch (error) {
+        console.error(error.message);
+    }
 }
 
 function setSensorData(json_data, sensor_name)
@@ -227,42 +246,51 @@ function setSensorData(json_data, sensor_name)
 
 window.addEventListener("DOMContentLoaded", (ev) => {
 
-	/* POST to the LED endpoint when the buttons are pressed */
-	const led_on_btn = document.getElementById("red_led_on");
-	led_on_btn.addEventListener("click", (event) => {
-		console.log("red_led_on clicked");
-		postLed(0, true);
-	})
+    document.querySelector('.color-picker-container img').addEventListener('click', function() {
+        document.getElementById('color_picker').click();
+    });
 
-	const led_off_btn = document.getElementById("red_led_off");
-	led_off_btn.addEventListener("click", (event) => {
-		console.log("red_led_off clicked");
-		postLed(0, false);
-	})
+    document.getElementById('color_picker').addEventListener('input', function(event) {
+        let color = event.target.value;
+        postRgbLed(color);
+    });
 
-    const green_led_on_btn = document.getElementById("green_led_on");
-    green_led_on_btn.addEventListener("click", (event) => {
-        console.log("green_led_on clicked");
-        postLed(1, true);
-    })
+	// /* POST to the LED endpoint when the buttons are pressed */
+	// const led_on_btn = document.getElementById("red_led_on");
+	// led_on_btn.addEventListener("click", (event) => {
+	// 	console.log("red_led_on clicked");
+	// 	postLed(0, true);
+	// })
 
-    const green_led_off_btn = document.getElementById("green_led_off");
-    green_led_off_btn.addEventListener("click", (event) => {
-        console.log("green_led_off clicked");
-        postLed(1, false);
-    })
+	// const led_off_btn = document.getElementById("red_led_off");
+	// led_off_btn.addEventListener("click", (event) => {
+	// 	console.log("red_led_off clicked");
+	// 	postLed(0, false);
+	// })
 
-    const blue_led_on_btn = document.getElementById("blue_led_on");
-    blue_led_on_btn.addEventListener("click", (event) => {
-        console.log("blue_led_on clicked");
-        postLed(2, true);
-    })
+    // const green_led_on_btn = document.getElementById("green_led_on");
+    // green_led_on_btn.addEventListener("click", (event) => {
+    //     console.log("green_led_on clicked");
+    //     postLed(1, true);
+    // })
 
-    const blue_led_off_btn = document.getElementById("blue_led_off");
-    blue_led_off_btn.addEventListener("click", (event) => {
-        console.log("blue_led_off clicked");
-        postLed(2, false);
-    })
+    // const green_led_off_btn = document.getElementById("green_led_off");
+    // green_led_off_btn.addEventListener("click", (event) => {
+    //     console.log("green_led_off clicked");
+    //     postLed(1, false);
+    // })
+
+    // const blue_led_on_btn = document.getElementById("blue_led_on");
+    // blue_led_on_btn.addEventListener("click", (event) => {
+    //     console.log("blue_led_on clicked");
+    //     postLed(2, true);
+    // })
+
+    // const blue_led_off_btn = document.getElementById("blue_led_off");
+    // blue_led_off_btn.addEventListener("click", (event) => {
+    //     console.log("blue_led_off clicked");
+    //     postLed(2, false);
+    // })
 
 	/* Setup websocket for handling network stats */
 	const ws = new WebSocket("/");
