@@ -29,8 +29,9 @@ west flash --erase
 ```
 
 ## TODO
-- implement wifi provisioning
-- implement secure web server
-- add option to run as a softAP
-- implement wifi positioning
-- implement bmm350 magnetometer (waiting for driver in zephyr)
+- [ ] implement wifi provisioning
+- [ ] implement secure web server
+- [ ] add option to run as a softAP
+- [ ] implement wifi positioning
+- [ ] implement bmm350 magnetometer (waiting for driver in zephyr)
+- [x] implement mDNS
