@@ -43,6 +43,14 @@ menu "Logging"
     module-str = sensors
     source "subsys/logging/Kconfig.template.log_config"
 
+    module = FQA
+    module-str = fqa
+    source "subsys/logging/Kconfig.template.log_config"
+
+    module = ZSL_UTILS
+    module-str = zsl_utils
+    source "subsys/logging/Kconfig.template.log_config"
+
 endmenu # Log levels
 
 menu "Nordic Sta sample"

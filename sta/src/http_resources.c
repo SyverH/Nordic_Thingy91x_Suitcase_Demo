@@ -52,6 +52,28 @@ struct http_resource_detail_static main_js_gz_resource_detail = {
 HTTP_RESOURCE_DEFINE(main_js_gz_resource, test_http_service, "/main.js",
 		     &main_js_gz_resource_detail);
 
+////////////////// styles CSS //////////////////
+// This is the CSS file that is loaded by the index.html file.
+
+static const uint8_t styles_css_gz[] = {
+#include "styles.css.gz.inc"
+};
+
+struct http_resource_detail_static styles_css_gz_resource_detail = {
+    .common =
+        {
+            .type = HTTP_RESOURCE_TYPE_STATIC,
+            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+            .content_encoding = "gzip",
+            .content_type = "text/css",
+        },
+    .static_data = styles_css_gz,
+    .static_data_len = sizeof(styles_css_gz),
+};
+
+HTTP_RESOURCE_DEFINE(styles_css_gz_resource, test_http_service, "/styles.css",
+                     &styles_css_gz_resource_detail);
+
 ////////////////// Color Wheel svg //////////////////
 // This is an image to be displayed in the browser.
 
@@ -94,6 +116,28 @@ struct http_resource_detail_static logo_Nordic_svg_gz_resource_detail = {
 
 HTTP_RESOURCE_DEFINE(logo_Nordic_svg_gz_resource, test_http_service,
 		     "/Logo_Flat_RGB_Horizontal.svg", &logo_Nordic_svg_gz_resource_detail);
+
+////////////////// 3D Model //////////////////
+// This is an 3D model to be displayed in the browser.
+
+static const uint8_t model_glb_gz[] = {
+#include "Duck.glb.gz.inc"
+};
+
+struct http_resource_detail_static model_glb_gz_resource_detail = {
+    .common =
+        {
+            .type = HTTP_RESOURCE_TYPE_STATIC,
+            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+            .content_encoding = "gzip",
+            .content_type = "model/gltf-binary",
+        },
+    .static_data = model_glb_gz,
+    .static_data_len = sizeof(model_glb_gz),
+};
+
+HTTP_RESOURCE_DEFINE(model_glb_gz_resource, test_http_service, "/Duck.glb",
+                     &model_glb_gz_resource_detail);
 
 ////////////////// LED Resource //////////////////
 // This is the resource that is used to control the LEDs on the Thingy:91x.

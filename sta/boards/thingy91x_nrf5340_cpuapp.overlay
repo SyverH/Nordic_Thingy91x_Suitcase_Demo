@@ -9,7 +9,7 @@
     aliases{
      accel0 = &accelerometer_hp;
      accel1 = &accelerometer_lp;
-    //  mag0 = &magnetometer;   // magnetometer bmm350 is not yet properly implemented in zeephyr
+     mag0 = &magnetometer;   // magnetometer bmm350 is not yet properly implemented in zeephyr
      env0 = &bme680;
      pwm-led0 = &rgb_red_pwm_led;
      pwm-led1 = &rgb_green_pwm_led;
@@ -74,9 +74,9 @@
 	accel: accelerometer_lp: adxl367@1d {
 		status = "okay";
 	};
-	// magnetometer: bmm350@14 {
-	// 	status = "okay";
-	// };
+	magnetometer: bmm350@14 {
+		status = "okay";
+	};
 };
 
 &pmic_main {

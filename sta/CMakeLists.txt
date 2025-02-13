@@ -24,8 +24,10 @@ set(gen_dir ${ZEPHYR_BINARY_DIR}/include/generated/)
 foreach(web_resource
   index.html
   main.js
+  styles.css
   color_wheel.svg
   Logo_Flat_RGB_Horizontal.svg
+  Duck.glb
     )
   generate_inc_file_for_target(
     app
@@ -41,4 +43,6 @@ target_sources(app PRIVATE
     src/sensors.c
     src/http_resources.c
     src/wifi_sta.c
+    src/zsl_utils.c
+    src/fqa_orientation.c
 )

@@ -262,6 +262,11 @@ function updateOrientation(event)
     modelViewerTransform.orientation = `${pitch}deg ${roll}deg ${yaw}deg`;
 }
 
+window.addEventListener('load', function() {
+    var modelViewer = document.getElementById('transform');
+    modelViewer.setAttribute('src', modelViewer.getAttribute('data-src'));
+});
+
 window.addEventListener("DOMContentLoaded", (ev) => {
 
     document.querySelector('.color-picker-container img').addEventListener('click', function() {

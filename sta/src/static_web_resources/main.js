@@ -106,6 +106,41 @@ let gyro0_chart = new Highcharts.Chart({
     }
 });
 
+let mag0_chart = new Highcharts.Chart({
+    chart: {
+        renderTo: 'chart_mag0'
+    },
+    title: {
+        text: 'Magnetometer'
+    },
+    series: [{
+        name: 'X',
+        color: 'red',
+        data: [],
+        marker: {enabled: false}
+    }, {
+        name: 'Y',
+        color: 'green',
+        data: [],
+        marker: {enabled: false}
+    }, {
+        name: 'Z',
+        color: 'blue',
+        data: [],
+        marker: {enabled: false}
+    }],
+    xAxis: {
+        title: {
+            text: 'Sample number'
+        }
+    },
+    yAxis: {
+        title: {
+            text: 'Magnetic field (uT)'
+        }
+    }
+});
+
 let temp_chart = new Highcharts.Chart({
     chart: {
         renderTo: 'chart_temp'
@@ -206,21 +241,6 @@ let press_chart = new Highcharts.Chart({
 // });
 
 
-
-// async function postLed(led_id, state)
-// {
-// 	try {
-// 		const payload = JSON.stringify({"led_num" : led_id, "led_state" : state});
-
-// 		const response = await fetch("/led", {method : "POST", body : payload});
-// 		if (!response.ok) {
-// 			throw new Error(`Response satus: ${response.status}`);
-// 		}
-// 	} catch (error) {
-// 		console.error(error.message);
-// 	}
-// }
-
 async function postRgbLed(hex_color)
 {
     let r = parseInt(hex_color.slice(1, 3), 16);
@@ -245,6 +265,20 @@ function setSensorData(json_data, sensor_name)
     document.getElementById(sensor_name).innerHTML = json_data[sensor_name];
 }
 
+const modelViewerTransform = document.querySelector("model-viewer#transform");
+
+function updateOrientation(roll, pitch, yaw)
+{
+    console.log("Roll: " + roll + " Pitch: " + pitch + " Yaw: " + yaw);
+
+    modelViewerTransform.orientation = `${pitch}deg ${roll}deg ${yaw}deg`;
+}
+
+window.addEventListener('load', function() {
+    var modelViewer = document.getElementById('transform');
+    modelViewer.setAttribute('src', modelViewer.getAttribute('data-src'));
+});
+
 window.addEventListener("DOMContentLoaded", (ev) => {
 
     document.querySelector('.color-picker-container img').addEventListener('click', function() {
@@ -255,43 +289,6 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         let color = event.target.value;
         postRgbLed(color);
     });
-
-	// /* POST to the LED endpoint when the buttons are pressed */
-	// const led_on_btn = document.getElementById("red_led_on");
-	// led_on_btn.addEventListener("click", (event) => {
-	// 	console.log("red_led_on clicked");
-	// 	postLed(0, true);
-	// })
-
-	// const led_off_btn = document.getElementById("red_led_off");
-	// led_off_btn.addEventListener("click", (event) => {
-	// 	console.log("red_led_off clicked");
-	// 	postLed(0, false);
-	// })
-
-    // const green_led_on_btn = document.getElementById("green_led_on");
-    // green_led_on_btn.addEventListener("click", (event) => {
-    //     console.log("green_led_on clicked");
-    //     postLed(1, true);
-    // })
-
-    // const green_led_off_btn = document.getElementById("green_led_off");
-    // green_led_off_btn.addEventListener("click", (event) => {
-    //     console.log("green_led_off clicked");
-    //     postLed(1, false);
-    // })
-
-    // const blue_led_on_btn = document.getElementById("blue_led_on");
-    // blue_led_on_btn.addEventListener("click", (event) => {
-    //     console.log("blue_led_on clicked");
-    //     postLed(2, true);
-    // })
-
-    // const blue_led_off_btn = document.getElementById("blue_led_off");
-    // blue_led_off_btn.addEventListener("click", (event) => {
-    //     console.log("blue_led_off clicked");
-    //     postLed(2, false);
-    // })
 
 	/* Setup websocket for handling network stats */
 	const ws = new WebSocket("/");
@@ -317,6 +314,12 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         // setSensorData(data, "bmi270_ax");
         // setSensorData(data, "bmi270_ay");
         // setSensorData(data, "bmi270_az");
+
+        setSensorData(data, "bmm350_magn_x");
+        setSensorData(data, "bmm350_magn_y");
+        setSensorData(data, "bmm350_magn_z");
+
+        updateOrientation(parseFloat(data.euler_x), parseFloat(data.euler_y), parseFloat(data.euler_z));
 
         // let x = (new Date()).getTime();
         let x = parseInt(data.count);
@@ -375,6 +378,25 @@ window.addEventListener("DOMContentLoaded", (ev) => {
             gyro0_chart.series[2].addPoint([x, y], true, true, false);
         } else {
             gyro0_chart.series[2].addPoint([x, y], true, false, false);
+        }
+
+        y = parseFloat(data.bmm350_magn_x);
+        if (mag0_chart.series[0].data.length > 100) {
+            mag0_chart.series[0].addPoint([x, y], true, true, false);
+        } else {
+            mag0_chart.series[0].addPoint([x, y], true, false, false);
+        }
+        y = parseFloat(data.bmm350_magn_y);
+        if (mag0_chart.series[1].data.length > 100) {
+            mag0_chart.series[1].addPoint([x, y], true, true, false);
+        } else {
+            mag0_chart.series[1].addPoint([x, y], true, false, false);
+        }
+        y = parseFloat(data.bmm350_magn_z);
+        if (mag0_chart.series[2].data.length > 100) {
+            mag0_chart.series[2].addPoint([x, y], true, true, false);
+        } else {
+            mag0_chart.series[2].addPoint([x, y], true, false, false);
         }
 
         y = parseFloat(data.bme680_temperature);
