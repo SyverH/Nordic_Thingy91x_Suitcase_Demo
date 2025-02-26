@@ -1,0 +1,141 @@
+/* Global Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+}
+
+/* Top Header (Logo and Title) */
+.top-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 10vh;
+    background-color: lightblue;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo {
+    position: absolute;
+    top: 10%;
+    left: 1%;
+    height: 80%;
+    max-width: 25%;
+}
+
+.header-text {
+    font-size: clamp(1rem, 4vw, 3rem); /* Responsively scales text */
+    color: #0B1215;
+    font-weight: 500;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* LED Control and Map Section */
+.top-header {
+    margin-top: 10.5vh; /* Space below the header */
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1vh 2vw;
+    gap: 2rem;
+}
+
+.led-control-container, .map-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.led-control-container h2, .map-container h2 {
+    margin-bottom: 0;
+}
+
+.color-picker-container {
+    position: relative;
+}
+
+.color-spectrum {
+    width: clamp(50px, 4vw, 100px); /* Scales responsively */
+    height: auto;
+    cursor: pointer;
+}
+
+.color-picker-container input[type="color"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+#map {
+    height: 25vh; /* Adjusted height */
+    width: 25vh;  /* Adjusted width */
+    border: 1px solid #ccc; /* Optional: Add subtle border */
+}
+
+/* Sensor Section */
+.sensor-section {
+    padding-left: 1vw;
+    text-align: center;
+}
+
+.sensor-section h2 {
+    margin-bottom: 0;
+}
+
+.sensor-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.sensor-value {
+    margin: 0.5vh;
+    padding: 1vh;
+    font-size: 16px;
+    font-family: 'Roboto', sans-serif;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    flex: 1;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* Graph Containers */
+#chart_div {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.container {
+    flex: 1;
+    margin: 0.5vh;
+    padding: 1vh;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    height: 50vh;
+}
+
+@media only screen and (max-width: 780px) {
+    #chart_div {
+        flex-direction: column; /* Stacks charts vertically on smaller screens */
+    }
+    .container {
+        width: 100%; /* Ensure charts take full width in column layout */
+    }
+}

@@ -3,6 +3,40 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+var initialCoordinates = [59.920983, 10.689235];
+var initialUncertainty = 0;
+
+var map = L.map('map').setView(initialCoordinates, 15);
+var marker = L.marker(initialCoordinates).addTo(map);
+var uncertaintyCircle = L.circle(initialCoordinates, initialUncertainty, {
+    color: 'blue',
+    fillColor: '#blue',
+    fillOpacity: 0.5,
+    radius: initialUncertainty
+}).addTo(map);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+
+function updateMarker(lat, lon, uncertainty, zoom) {
+    var newCoordinates = [lat, lon];
+
+    marker.setLatLng(newCoordinates);
+    uncertaintyCircle.setLatLng(newCoordinates);
+    uncertaintyCircle.setRadius(uncertainty);
+    map.setView(newCoordinates, zoom);
+}
+
+// After 5 seconds, update the marker position using remove and reset
+setTimeout(() => {
+    updateMarker(63.421642, 10.437172, 10, 15);;
+}, 5000);
+
+
 let accel0_chart = new Highcharts.Chart({
     chart: {
         renderTo: 'chart_accel0'
