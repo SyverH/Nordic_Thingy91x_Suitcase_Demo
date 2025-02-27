@@ -32,6 +32,53 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 #include "http_resources.h"
 #include "wifi_sta.h"
 
+double sensor_offset_data[3] = {0.0};
+
+#ifdef CONFIG_SYS_HEAP_LISTENER
+#include <zephyr/sys/heap_listener.h>
+extern struct sys_heap _system_heap;
+struct sys_memory_stats system_heap_stats;
+uint32_t system_heap_free = 0;
+uint32_t system_heap_used = 0;
+uint32_t system_heap_max_used = 0;
+
+void on_system_heap_alloc(uintptr_t heap_id, void *mem, size_t bytes)
+{
+	if (heap_id == HEAP_ID_FROM_POINTER(&_system_heap)) {
+		sys_heap_runtime_stats_get((struct sys_heap *)&_system_heap.heap,
+					   &system_heap_stats);
+		system_heap_used = (uint32_t)system_heap_stats.allocated_bytes;
+		system_heap_max_used = (uint32_t)system_heap_stats.max_allocated_bytes;
+		system_heap_free = (uint32_t)system_heap_stats.free_bytes;
+		LOG_INF("system_heap ALLOC %zu. Heap state: allocated %zu, free %zu, max allocated "
+			"%zu, heap size %u.\n",
+			bytes, system_heap_free, system_heap_used, system_heap_max_used,
+			K_HEAP_MEM_POOL_SIZE);
+	}
+}
+
+void on_system_heap_free(uintptr_t heap_id, void *mem, size_t bytes)
+{
+	if (heap_id == HEAP_ID_FROM_POINTER(&_system_heap)) {
+		sys_heap_runtime_stats_get((struct sys_heap *)&_system_heap.heap,
+					   &system_heap_stats);
+		system_heap_used = (uint32_t)system_heap_stats.allocated_bytes;
+		system_heap_max_used = (uint32_t)system_heap_stats.max_allocated_bytes;
+		system_heap_free = (uint32_t)system_heap_stats.free_bytes;
+		LOG_INF("system_heap ALLOC %zu. Heap state: allocated %zu, free %zu, max allocated "
+			"%zu, heap size %u.\n",
+			bytes, system_heap_free, system_heap_used, system_heap_max_used,
+			K_HEAP_MEM_POOL_SIZE);
+	}
+}
+
+HEAP_LISTENER_ALLOC_DEFINE(system_heap_listener_alloc, HEAP_ID_FROM_POINTER(&_system_heap),
+			   on_system_heap_alloc);
+HEAP_LISTENER_FREE_DEFINE(system_heap_listener_free, HEAP_ID_FROM_POINTER(&_system_heap),
+			  on_system_heap_free);
+#endif // CONFIG_SYS_HEAP_LISTENER
+
+
 static const struct pwm_dt_spec red_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 static const struct pwm_dt_spec green_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
 static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2));
@@ -76,11 +123,11 @@ static void sensor_handler(struct k_work *work)
 	struct ws_sensors_ctx *ctx = CONTAINER_OF(dwork, struct ws_sensors_ctx, work);
 
 	// ret = sensors_collect(tx_buf, sizeof(tx_buf));
-	ret = sensors_get_json(tx_buf, sizeof(tx_buf));
+	ret = sensors_get_json(tx_buf, sizeof(tx_buf), sensor_offset_data);
 	if (ret < 0) {
 		LOG_ERR("Unable to collect sensor data, err %d", ret);
 		goto unregister;
-	}
+	}   
 
 	ret = websocket_send_msg(ctx->sock, tx_buf, ret, WEBSOCKET_OPCODE_DATA_TEXT, false, true,
 				 SYS_FOREVER_MS);
@@ -147,7 +194,7 @@ int ws_sensors_setup(int ws_socket, void *user_data)
 	LOG_INF("Using socket %d for sensor websocket", ws_socket);
 
 	int ret = k_work_reschedule(&ctx[slot].work, K_NO_WAIT);
-	if (ret) {
+	if (ret < 0) {
 		LOG_ERR("Failed to reschedule sensor work");
 		return ret;
 	}
@@ -184,7 +231,7 @@ static int led_handler(struct http_client_ctx *client, enum http_data_status sta
 	static uint8_t post_payload_buf[32];
 	static size_t cursor;
 
-	LOG_DBG("LED handler status %d, size %zu", status, len);
+	LOG_WRN("LED handler status %d, size %zu", status, len);
 
 	if (status == HTTP_SERVER_DATA_ABORTED) {
 		cursor = 0;
@@ -209,6 +256,43 @@ static int led_handler(struct http_client_ctx *client, enum http_data_status sta
 	}
 
 	return 0;
+}
+
+static int gyro_offset_handler(struct http_client_ctx *client, enum http_data_status status,
+               uint8_t *buffer, size_t len, void *user_data)
+{
+    static uint8_t post_payload_buf[32];
+    static size_t cursor;
+
+    LOG_WRN("Gyro offset handler status %d, size %zu", status, len);
+
+    if (status == HTTP_SERVER_DATA_ABORTED) {
+        cursor = 0;
+        return 0;
+    }
+
+    if (len + cursor > sizeof(post_payload_buf)) {
+        cursor = 0;
+        return -ENOMEM;
+    }
+
+    /* Copy payload to our buffer. Note that even for a small payload, it may arrive split into
+     * chunks (e.g. if the header size was such that the whole HTTP request exceeds the size of
+     * the client buffer).
+     */
+    memcpy(post_payload_buf + cursor, buffer, len);
+    cursor += len;
+
+    if (status == HTTP_SERVER_DATA_FINAL) {
+        LOG_WRN("Recalibrating gyro offset");
+        int ret = sensor_offset_calibration(sensor_offset_data);
+        if (ret) {
+            LOG_ERR("Failed to calibrate sensor offset");
+        }
+        cursor = 0;
+    }
+
+    return 0;
 }
 
 /**
@@ -272,9 +356,21 @@ int main(void)
 		return ret;
 	}
 
+    ret = sensor_offset_calibration(sensor_offset_data);
+    if (ret) {
+        LOG_ERR("Failed to calibrate sensor offset");
+        return ret;
+    }
+
 	http_resources_set_led_handler(led_handler);
+    http_resources_set_recalibrate_gyro_handler(gyro_offset_handler);
 	http_resources_set_ws_handler(ws_sensors_setup);
 	wifi_sta_set_wifi_connected_cb(wifi_connected_handler);
+
+    #ifdef CONFIG_SYS_HEAP_LISTENER
+    heap_listener_register(&system_heap_listener_alloc);
+	heap_listener_register(&system_heap_listener_free);
+    #endif // CONFIG_SYS_HEAP_LISTENER
 
 	net_mgmt_callback_init();
 

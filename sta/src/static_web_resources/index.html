@@ -30,18 +30,12 @@
         <div class="model-container">
             <h2>3D Model</h2>
             <div class="model-container">
-                <model-viewer id="transform" alt="A 3D model of an Duck" data-src="Duck.glb" ></model-viewer>
+                <!-- <model-viewer id="transform" alt="A 3D model of an Duck" data-src="Duck.glb" ></model-viewer> -->
+                 <model-viewer id="transform" alt="A 3D model of the Thingy91x" data-src="thingy91x3.glb" ></model-viewer>
             </div>
-            <div class="orientaton-input-container">
-                <div class="orientation-line">
-                    Roll <input id="model_roll" name="model_roll" class="orientaton-input", value="0">
-                </div>
-                <div class="orientation-line">
-                    Pitch <input id="model_pitch" name="model_pitch" class="orientaton-input", value="0">
-                </div>
-                <div class="orientation-line">
-                    Yaw <input id="model_yaw" name="model_yaw" class="orientaton-input", value="0">
-                </div>
+            <div class="orientaton-controll-container">
+                <button id="reset-orientation-button">Reset Orientation</button>
+                <button id="recalibrate-offset-button">Recalibrate Gyroscope Offset</button>
             </div>
         </div>
     </div>

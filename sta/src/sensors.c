@@ -9,8 +9,6 @@ const struct device *dev_bme680 = DEVICE_DT_GET(DT_ALIAS(env0));
 const struct device *dev_bmm350 = DEVICE_DT_GET(DT_ALIAS(mag0)); // NOTE: The bmm350 device have
 // no zephyr drivers yet
 
-uint64_t sample_count = 0; // Counter for the measurements
-
 /**
  * @brief Rotate a measurement around an axis.
  *
@@ -61,41 +59,6 @@ int rotate_measurement(struct sensor_value *val, int angle, int axis)
 	return 0;
 }
 
-int sensors_correct_magnetometer(struct sensor_value *data)
-{
-
-    zsl_real_t data_vec[3] = {sensor_value_to_double(&data[0]),
-                               sensor_value_to_double(&data[1]),
-                               sensor_value_to_double(&data[2])};
-    zsl_real_t b_data[3] = {DEFAULT_MAG_CAL_BX, DEFAULT_MAG_CAL_BY, DEFAULT_MAG_CAL_BZ};
-    zsl_real_t K_data[9] = {DEFAULT_MAG_CAL_K0, DEFAULT_MAG_CAL_K1, DEFAULT_MAG_CAL_K2,
-                             DEFAULT_MAG_CAL_K3, DEFAULT_MAG_CAL_K4, DEFAULT_MAG_CAL_K5,
-                             DEFAULT_MAG_CAL_K6, DEFAULT_MAG_CAL_K7, DEFAULT_MAG_CAL_K8};
-
-    ZSL_VECTOR_DEF(d, 3);
-    ZSL_VECTOR_DEF(b, 3);
-    ZSL_MATRIX_DEF(K, 3, 3);
-    ZSL_VECTOR_DEF(d_out, 3);
-
-    zsl_vec_from_arr(&d, data_vec);
-    zsl_vec_from_arr(&b, b_data);
-    zsl_mtx_from_arr(&K, K_data);
-
-    // zsl_mtx_logging(&K, "K");
-
-    zsl_fus_cal_corr_vec(&d, &K, &b, &d_out);
-
-    // LOG_INF("Mag: %f %f %f -> %f %f %f", 
-    //     data_vec[0], data_vec[1], data_vec[2],
-    //     d_out.data[0], d_out.data[1], d_out.data[2]);
-
-    sensor_value_from_double(&data[0], d_out.data[0]);
-    sensor_value_from_double(&data[1], d_out.data[1]);
-    sensor_value_from_double(&data[2], d_out.data[2]);
-
-    return 0;
-}
-
 int sensors_init(void)
 {
 	int ret;
@@ -128,7 +91,7 @@ int sensors_init(void)
 	ful_scale.val2 = 0;
 	sampling_freq.val1 = 100; /* Hz. */
 	sampling_freq.val2 = 0;
-	oversampling.val1 = 1; /* Normal mode */
+	oversampling.val1 = 2; /* Normal mode */
 	oversampling.val2 = 0;
 
 	/* Set sampling frequency last as this also sets the appropriate
@@ -180,33 +143,7 @@ int sensors_init(void)
 
 double mag_ref[3] = {0.0, 0.0, 0.0};
 
-void quaternion_to_euler(struct zsl_quat *q, struct zsl_euler *e)
-{
-    zsl_real_t roll;
-    zsl_real_t pitch;
-    zsl_real_t yaw;
 
-    // Roll (x-axis rotation)
-    double sinr_cosp = 2.0 * (q->r * q->i + q->j * q->k);
-    double cosr_cosp = 1.0 - 2.0 * (q->i * q->i + q->j * q->j);
-    roll = atan2(sinr_cosp, cosr_cosp);
-
-    // Pitch (y-axis rotation)
-    double sinp = 2.0 * (q->r * q->j - q->k * q->i);
-    if (fabs(sinp) >= 1.0)
-        pitch = copysign(PI / 2.0, sinp); // Use 90 degrees if out of range
-    else
-        pitch = asin(sinp);
-
-    // Yaw (z-axis rotation)
-    double siny_cosp = 2.0 * (q->r * q->k + q->i * q->j);
-    double cosy_cosp = 1.0 - 2.0 * (q->j * q->j + q->k * q->k);
-    yaw = atan2(siny_cosp, cosy_cosp);
-
-    e->x = roll;
-    e->y = pitch;
-    e->z = yaw;
-}
 
 /**
  * @brief Meassure the sensor data
@@ -241,6 +178,7 @@ int sensor_measure(double *data)
 	struct sensor_value mag[3]; // NOTE: The bmm350 device have no zephyr drivers yet
 
 	//////////////////////BMI270//////////////////////
+    LOG_DBG("BMI270");
 	ret = sensor_sample_fetch(dev_bmi270);
 	if (ret) {
 		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -259,7 +197,7 @@ int sensor_measure(double *data)
 		return -1;
 	}
 
-    // Rotate the accelerometer 180 degrees around the x-axis and 90 degrees around the z-axis
+    //Rotate the accelerometer 180 degrees around the x-axis and 90 degrees around the z-axis
 	ret = rotate_measurement(accel0, 180, 0);
     if (ret) {
         LOG_ERR("rotate_measurement failed ret %d", ret);
@@ -286,6 +224,7 @@ int sensor_measure(double *data)
     }
 
 	//////////////////////ADXL367/////////////////////
+    LOG_DBG("ADXL367");
 	ret = sensor_sample_fetch(dev_adxl367);
 	if (ret) {
 		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -299,6 +238,7 @@ int sensor_measure(double *data)
 	}
 
 	//////////////////////BME680//////////////////////
+    LOG_DBG("BME680");
 	ret = sensor_sample_fetch(dev_bme680);
 	if (ret) {
 		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -331,6 +271,7 @@ int sensor_measure(double *data)
 
 	// NOTE: The bmm350 device have no zephyr drivers yet
 	////////////////////BMM350//////////////////////
+    LOG_DBG("BMM350");
 	ret = sensor_sample_fetch(dev_bmm350);
 	if(ret) {
 	    LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -343,62 +284,14 @@ int sensor_measure(double *data)
 	    return -1;
 	}
 
-    //////////////////////Correct magnetometer//////////////////////
-    ret = sensors_correct_magnetometer(mag);
-    if (ret) {
-        LOG_ERR("sensors_correct_magnetometer failed ret %d", ret);
-        return -1;
-    }
+    LOG_DBG("Sensor data fetched");
+    float32_t runtime = (float32_t)k_cycle_get_32() / (float32_t)sys_clock_hw_cycles_per_sec();
 
-	sample_count++;
-
-    //////////////////FQA test//////////////////////
-    // if (sample_count == 1) {
-    if(mag_ref[0] == 0.0 && mag_ref[1] == 0.0 && mag_ref[2] == 0.0) {
-        mag_ref[0] = sensor_value_to_double(&mag[0]);
-        mag_ref[1] = sensor_value_to_double(&mag[1]);
-        mag_ref[2] = sensor_value_to_double(&mag[2]);
-    }
-
-    struct zsl_vec *acc_vec;
-    struct zsl_vec *mag_vec;
-    struct zsl_vec *mag_ref_vec;
-    struct zsl_quat *q;
-
-    zsl_vec_alloc(&acc_vec, 3);
-    zsl_vec_alloc(&mag_vec, 3);
-    zsl_vec_alloc(&mag_ref_vec, 3);
-    zsl_quat_alloc(&q, ZSL_QUAT_TYPE_IDENTITY);
-
-    double acc_vec_data[3] = {sensor_value_to_double(&accel0[0]), sensor_value_to_double(&accel0[1]), sensor_value_to_double(&accel0[2])};
-    double mag_vec_data[3] = {sensor_value_to_double(&mag[0]), sensor_value_to_double(&mag[1]), sensor_value_to_double(&mag[2])};
-
-    zsl_vec_set(acc_vec, acc_vec_data);
-    zsl_vec_set(mag_vec, mag_vec_data);
-    zsl_vec_set(mag_ref_vec, mag_ref);
-
-    ret = fqa_orientation(acc_vec, mag_vec, mag_ref_vec, q);
-    if (ret != 0) {
-        LOG_ERR("Failed to calculate orientation");
-        return -1;
-    }
-
-    // LOG_INF("Orientation: %f, %f, %f, %f ", q->r, q->i, q->j, q->k); // NOTE: Logg fqa quaternion
-    LOG_INF("Acc: %f, %f, %f \t Mag: %f, %f, %f", acc_vec_data[0], acc_vec_data[1], acc_vec_data[2], mag_vec_data[0], mag_vec_data[1], mag_vec_data[2]);
-
-    struct zsl_euler euler;
-    // zsl_quat_to_euler(q, &euler);
-    quaternion_to_euler(q, &euler);
-
-    // LOG_INF("Euler: %f, %f, %f", euler.x, euler.y, euler.z);
-
-    zsl_vec_free(acc_vec);
-    zsl_vec_free(mag_vec);
-    zsl_vec_free(mag_ref_vec);
-    zsl_quat_free(q);
+    // LOG_INF("Runtime: %f", runtime);
 
 	//////////////////////Set output//////////////////////
-	data[0] = sample_count;
+    LOG_DBG("Set output");
+	data[0] = runtime;
 	data[1] = sensor_value_to_double(&accel0[0]);
 	data[2] = sensor_value_to_double(&accel0[1]);
 	data[3] = sensor_value_to_double(&accel0[2]);
@@ -415,14 +308,77 @@ int sensor_measure(double *data)
 	data[14] = sensor_value_to_double(&mag[0]);
 	data[15] = sensor_value_to_double(&mag[1]);
 	data[16] = sensor_value_to_double(&mag[2]);
-    data[17] = euler.x * 180 / PI;
-    data[18] = euler.y * 180 / PI;
-    data[19] = euler.z * 180 / PI;
+    // data[17] = euler.x * 180 / PI;
+    // data[18] = euler.y * 180 / PI;
+    // data[19] = euler.z * 180 / PI;
     // data[17] = 0;
     // data[18] = 0;
     // data[19] = 0;
 
 	return 0;
+}
+
+int sensor_offset_calibration(double *offset_data)
+{
+    if (offset_data == NULL) {
+        LOG_ERR("offset_data is NULL");
+        return -EINVAL;
+    }
+
+    int ret;
+    // double data[3] = {0.0};
+    struct sensor_value data[3];
+
+    double sum_data[3] = {0.0};
+
+    for (int i = 0; i < GYRO_OFFSET_SAMPLES; i++) {
+        ret = sensor_sample_fetch(dev_bmi270);
+        if (ret) {
+            LOG_ERR("sensor_sample_fetch failed ret %d", ret);
+            return -1;
+        }
+
+        ret = sensor_channel_get(dev_bmi270, SENSOR_CHAN_GYRO_XYZ, data);
+        if (ret) {
+            LOG_ERR("sensor_channel_get failed ret %d", ret);
+            return -1;
+        }
+
+
+        sum_data[0] += sensor_value_to_double(&data[0]);
+        sum_data[1] += sensor_value_to_double(&data[1]);
+        sum_data[2] += sensor_value_to_double(&data[2]);
+
+        k_sleep(K_MSEC(20));
+    }
+
+    offset_data[0] = sum_data[0] / GYRO_OFFSET_SAMPLES;
+    offset_data[1] = sum_data[1] / GYRO_OFFSET_SAMPLES;
+    offset_data[2] = sum_data[2] / GYRO_OFFSET_SAMPLES;
+
+    // LOG_INF("Gyro offset: %f, %f, %f", offset_data[0], offset_data[1], offset_data[2]);
+
+    return 0;
+}
+
+int sensor_apply_offset_calibration(double *data, double *offset_data)
+{
+    if (data == NULL) {
+        LOG_ERR("data is NULL");
+        return -EINVAL;
+    }
+
+    if (offset_data == NULL) {
+        LOG_ERR("offset_data is NULL");
+        return -EINVAL;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        // LOG_INF("Before: %f + %f = %f", data[4 + i], offset_data[i], data[4 + i] + offset_data[i]);
+        data[4 + i] += offset_data[i];
+    }
+
+    return 0;
 }
 
 /**
@@ -432,12 +388,19 @@ int sensor_measure(double *data)
  * @param len Length of the buffer
  * @return int Length of the JSON string if successful, negative error code otherwise.
  */
-int sensors_get_json(char *buf, size_t len)
+int sensors_get_json(char *buf, size_t len, double *offset_data)
 {
 	int ret;
 
+    if (offset_data == NULL) {
+        LOG_WRN("offset_data is NULL");
+        for(int i = 0; i < 3; i++) {
+            offset_data[i] = 0.0;
+        }
+    }
+
 	const char *sensors_json_template = "{"
-					    "\"count\":%d,"
+					    "\"count\":%.03f,"
 					    "\"bmi270_ax\":%.03f,"
 					    "\"bmi270_ay\":%.03f,"
 					    "\"bmi270_az\":%.03f,"
@@ -453,23 +416,33 @@ int sensors_get_json(char *buf, size_t len)
 					    "\"bme680_gas\":%.03f,"
 					    "\"bmm350_magn_x\":%.03f,"
 					    "\"bmm350_magn_y\":%.03f,"
-					    "\"bmm350_magn_z\":%.03f,"
-                        "\"euler_x\":%.03f,"
-                        "\"euler_y\":%.03f,"
-                        "\"euler_z\":%.03f"
+					    "\"bmm350_magn_z\":%.03f"
 					    "}";
 
-	double data[20];
+    LOG_DBG("Getting sensor data");
+
+	double data[NUM_SENSOR_MEASUREMENTS];
 	ret = sensor_measure(data);
 	if (ret) {
 		LOG_ERR("sensor_measure failed ret %d", ret);
 		return ret;
 	}
 
-	ret = snprintf(buf, len, sensors_json_template, (int)data[0], data[1], data[2], data[3],
-		       data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11],
-		       data[12], data[13], data[14], data[15], data[16], data[17], data[18], data[19]);
+    LOG_DBG("Got sensor data");
 
+    ret = sensor_apply_offset_calibration(data, offset_data);
+    if (ret) {
+        LOG_ERR("sensor_apply_offset_calibration failed ret %d", ret);
+        return ret;
+    }
+
+    LOG_DBG("Applied offset calibration");
+
+	ret = snprintf(buf, len, sensors_json_template, data[0], data[1], data[2], data[3],
+		       data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11],
+		       data[12], data[13], data[14], data[15], data[16]);
+
+    LOG_DBG("JSON-ified sensor data");
 	// LOG_INF("JSON: %s", buf);
 
 	if (ret >= len) {

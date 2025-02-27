@@ -27,7 +27,8 @@ foreach(web_resource
   styles.css
   color_wheel.svg
   Logo_Flat_RGB_Horizontal.svg
-  Duck.glb
+#   Duck.glb
+  thingy91x3.glb
     )
   generate_inc_file_for_target(
     app
@@ -43,6 +44,4 @@ target_sources(app PRIVATE
     src/sensors.c
     src/http_resources.c
     src/wifi_sta.c
-    src/zsl_utils.c
-    src/fqa_orientation.c
 )

@@ -175,11 +175,26 @@ body {
     text-align: center;
 }
 
-.orientaton-input-container {
+.orientaton-controll-container {
     display: flex;
     flex-direction: column; /* Stack inputs vertically */
     align-items: center;
 }
+
+.orientaton-controll-container button
+{
+    margin: 10px;
+    padding: 10px;
+    font-size: 16px;
+    font-family: 'Roboto', sans-serif;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 50%;
+}
+
 .orientaton-input {
     width: 100px;
     height: 20px;
