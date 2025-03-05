@@ -109,40 +109,41 @@ let gyro0_chart = new Highcharts.Chart({
     }
 });
 
-let mag0_chart = new Highcharts.Chart({
-    chart: {
-        renderTo: 'chart_mag0'
-    },
-    title: {
-        text: 'Magnetometer'
-    },
-    series: [{
-        name: 'X',
-        color: 'red',
-        data: [],
-        marker: { enabled: false }
-    }, {
-        name: 'Y',
-        color: 'green',
-        data: [],
-        marker: { enabled: false }
-    }, {
-        name: 'Z',
-        color: 'blue',
-        data: [],
-        marker: { enabled: false }
-    }],
-    xAxis: {
-        title: {
-            text: 'Seconds'
-        }
-    },
-    yAxis: {
-        title: {
-            text: 'Magnetic field (uT)'
-        }
-    }
-});
+// NOTE: bmm350 is not plotted as it has no drivers in zephyr yet
+// let mag0_chart = new Highcharts.Chart({
+//     chart: {
+//         renderTo: 'chart_mag0'
+//     },
+//     title: {
+//         text: 'Magnetometer'
+//     },
+//     series: [{
+//         name: 'X',
+//         color: 'red',
+//         data: [],
+//         marker: { enabled: false }
+//     }, {
+//         name: 'Y',
+//         color: 'green',
+//         data: [],
+//         marker: { enabled: false }
+//     }, {
+//         name: 'Z',
+//         color: 'blue',
+//         data: [],
+//         marker: { enabled: false }
+//     }],
+//     xAxis: {
+//         title: {
+//             text: 'Seconds'
+//         }
+//     },
+//     yAxis: {
+//         title: {
+//             text: 'Magnetic field (uT)'
+//         }
+//     }
+// });
 
 let temp_chart = new Highcharts.Chart({
     chart: {
@@ -246,7 +247,7 @@ let press_chart = new Highcharts.Chart({
 
 function updatePlots(data) {
     // let x = (new Date()).getTime();
-    let x = parseFloat(data.count);
+    let x = parseFloat(data.timestamp);
     let y = parseFloat(data.bmi270_ax);
     if (accel0_chart.series[0].data.length > 100) {
         accel0_chart.series[0].addPoint([x, y], true, true, false);
@@ -305,24 +306,25 @@ function updatePlots(data) {
         gyro0_chart.series[2].addPoint([x, y], true, false, false);
     }
 
-    y = parseFloat(data.bmm350_magn_x);
-    if (mag0_chart.series[0].data.length > 100) {
-        mag0_chart.series[0].addPoint([x, y], true, true, false);
-    } else {
-        mag0_chart.series[0].addPoint([x, y], true, false, false);
-    }
-    y = parseFloat(data.bmm350_magn_y);
-    if (mag0_chart.series[1].data.length > 100) {
-        mag0_chart.series[1].addPoint([x, y], true, true, false);
-    } else {
-        mag0_chart.series[1].addPoint([x, y], true, false, false);
-    }
-    y = parseFloat(data.bmm350_magn_z);
-    if (mag0_chart.series[2].data.length > 100) {
-        mag0_chart.series[2].addPoint([x, y], true, true, false);
-    } else {
-        mag0_chart.series[2].addPoint([x, y], true, false, false);
-    }
+    //NOTE: bmm350 is not plotted as it has no drivers in zephyr yet
+    // y = parseFloat(data.bmm350_magn_x);
+    // if (mag0_chart.series[0].data.length > 100) {
+    //     mag0_chart.series[0].addPoint([x, y], true, true, false);
+    // } else {
+    //     mag0_chart.series[0].addPoint([x, y], true, false, false);
+    // }
+    // y = parseFloat(data.bmm350_magn_y);
+    // if (mag0_chart.series[1].data.length > 100) {
+    //     mag0_chart.series[1].addPoint([x, y], true, true, false);
+    // } else {
+    //     mag0_chart.series[1].addPoint([x, y], true, false, false);
+    // }
+    // y = parseFloat(data.bmm350_magn_z);
+    // if (mag0_chart.series[2].data.length > 100) {
+    //     mag0_chart.series[2].addPoint([x, y], true, true, false);
+    // } else {
+    //     mag0_chart.series[2].addPoint([x, y], true, false, false);
+    // }
 
     y = parseFloat(data.bme680_temperature);
     if (temp_chart.series[0].data.length > 1000) {
@@ -391,7 +393,7 @@ let yaw = 0.0;
 
 function updateOrientation(data) {
 
-    let time = parseFloat(data.count);
+    let time = parseFloat(data.timestamp);
     if (old_time == 0) {
         old_time = time;
     }
@@ -498,9 +500,10 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         setSensorData(data, "bmi270_ay");
         setSensorData(data, "bmi270_az");
 
-        setSensorData(data, "bmm350_magn_x");
-        setSensorData(data, "bmm350_magn_y");
-        setSensorData(data, "bmm350_magn_z");
+        //NOTE: bmm350 is not plotted as it has no drivers in zephyr yet
+        // setSensorData(data, "bmm350_magn_x");
+        // setSensorData(data, "bmm350_magn_y");
+        // setSensorData(data, "bmm350_magn_z");
 
         updatePlots(data);
         updateOrientation(data);
