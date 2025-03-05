@@ -507,5 +507,10 @@ window.addEventListener("DOMContentLoaded", (ev) => {
 
         updatePlots(data);
         updateOrientation(data);
+    
     }
-})
+    
+    window.addEventListener('beforeunload', function () {
+        ws.close();
+    });
+});

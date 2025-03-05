@@ -122,7 +122,7 @@ HTTP_RESOURCE_DEFINE(logo_Nordic_svg_gz_resource, test_http_service,
 
 static const uint8_t model_glb_gz[] = {
 // #include "Duck.glb.gz.inc"
-#include "thingy91x3.glb.gz.inc"
+#include "thingy91x.glb.gz.inc"
 };
 
 struct http_resource_detail_static model_glb_gz_resource_detail = {
@@ -137,7 +137,7 @@ struct http_resource_detail_static model_glb_gz_resource_detail = {
     .static_data_len = sizeof(model_glb_gz),
 };
 
-HTTP_RESOURCE_DEFINE(model_glb_gz_resource, test_http_service, "/thingy91x3.glb",
+HTTP_RESOURCE_DEFINE(model_glb_gz_resource, test_http_service, "/thingy91x.glb",
                      &model_glb_gz_resource_detail);
 
 ////////////////// Recalibrate Gyro Button //////////////////

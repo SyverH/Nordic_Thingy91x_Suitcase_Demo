@@ -28,7 +28,7 @@ foreach(web_resource
   color_wheel.svg
   Logo_Flat_RGB_Horizontal.svg
 #   Duck.glb
-  thingy91x3.glb
+  thingy91x.glb
     )
   generate_inc_file_for_target(
     app

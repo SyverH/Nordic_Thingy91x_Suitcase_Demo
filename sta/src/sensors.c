@@ -6,7 +6,8 @@ LOG_MODULE_REGISTER(SENSORS, CONFIG_SENSORS_LOG_LEVEL);
 const struct device *dev_bmi270 = DEVICE_DT_GET(DT_ALIAS(accel0));
 const struct device *dev_adxl367 = DEVICE_DT_GET(DT_ALIAS(accel1));
 const struct device *dev_bme680 = DEVICE_DT_GET(DT_ALIAS(env0));
-// const struct device *dev_bmm350 = DEVICE_DT_GET(DT_ALIAS(mag0)); // NOTE: The bmm350 device have no zephyr drivers yet
+// const struct device *dev_bmm350 = DEVICE_DT_GET(DT_ALIAS(mag0)); // NOTE: The bmm350 device have
+// no zephyr drivers yet
 
 /**
  * @brief Rotate a measurement around an axis.
@@ -58,6 +59,11 @@ int rotate_measurement(struct sensor_value *val, int angle, int axis)
 	return 0;
 }
 
+/**
+ * @brief Initialize the sensors
+ *
+ * @return int 0 if successful, negative error code otherwise.
+ */
 int sensors_init(void)
 {
 	int ret;
@@ -160,8 +166,6 @@ int sensors_init(void)
  *      Gas resistance in Ohm
  *      Magnetometer in uT // NOTE: The bmm350 device have no zephyr drivers yet, data will be 0
  *
- * Sensor data will be rotated to match the ADXL367 coordinate system.
- *
  * @return 0 if successful, negative error code otherwise.
  */
 int sensor_measure(double *data)
@@ -173,7 +177,7 @@ int sensor_measure(double *data)
 	// struct sensor_value mag[3]; // NOTE: The bmm350 device have no zephyr drivers yet
 
 	//////////////////////BMI270//////////////////////
-    LOG_DBG("BMI270");
+	LOG_DBG("BMI270");
 	ret = sensor_sample_fetch(dev_bmi270);
 	if (ret) {
 		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -192,34 +196,21 @@ int sensor_measure(double *data)
 		return -1;
 	}
 
-    //Rotate the accelerometer 180 degrees around the x-axis and 90 degrees around the z-axis
-	ret = rotate_measurement(accel0, 180, 0);
-    if (ret) {
-        LOG_ERR("rotate_measurement failed ret %d", ret);
-        return -1;
-    }
+	// Rotate the BMI270 data to match the orientation of the thingy
+	ret = rotate_measurement(accel0, -90, 2);
+	if (ret) {
+		LOG_ERR("rotate_measurement failed ret %d", ret);
+		return -1;
+	}
 
-    ret = rotate_measurement(accel0, 90, 2);
-    if (ret) {
-        LOG_ERR("rotate_measurement failed ret %d", ret);
-        return -1;
-    }
-
-    // Rotate the gyroscope 180 degrees around the x-axis and 90 degrees around the z-axis
-    ret = rotate_measurement(gyr, 180, 0);
-    if (ret) {
-        LOG_ERR("rotate_measurement failed ret %d", ret);
-        return -1;
-    }
-
-    ret = rotate_measurement(gyr, 90, 2);
-    if (ret) {
-        LOG_ERR("rotate_measurement failed ret %d", ret);
-        return -1;
-    }
+	ret = rotate_measurement(gyr, -90, 2);
+	if (ret) {
+		LOG_ERR("rotate_measurement failed ret %d", ret);
+		return -1;
+	}
 
 	//////////////////////ADXL367/////////////////////
-    LOG_DBG("ADXL367");
+	LOG_DBG("ADXL367");
 	ret = sensor_sample_fetch(dev_adxl367);
 	if (ret) {
 		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -233,7 +224,7 @@ int sensor_measure(double *data)
 	}
 
 	//////////////////////BME680//////////////////////
-    LOG_DBG("BME680");
+	LOG_DBG("BME680");
 	ret = sensor_sample_fetch(dev_bme680);
 	if (ret) {
 		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -266,7 +257,7 @@ int sensor_measure(double *data)
 
 	// NOTE: The bmm350 device have no zephyr drivers yet
 	////////////////////BMM350//////////////////////
-    // LOG_DBG("BMM350");
+	// LOG_DBG("BMM350");
 	// ret = sensor_sample_fetch(dev_bmm350);
 	// if(ret) {
 	//     LOG_ERR("sensor_sample_fetch failed ret %d", ret);
@@ -279,13 +270,13 @@ int sensor_measure(double *data)
 	//     return -1;
 	// }
 
-    LOG_DBG("Sensor data fetched");
-    float32_t runtime = (float32_t)k_cycle_get_32() / (float32_t)sys_clock_hw_cycles_per_sec();
+	LOG_DBG("Sensor data fetched");
+	float32_t runtime = (float32_t)k_cycle_get_32() / (float32_t)sys_clock_hw_cycles_per_sec();
 
-    // LOG_INF("Runtime: %f", runtime);
+	// LOG_INF("Runtime: %f", runtime);
 
 	//////////////////////Set output//////////////////////
-    LOG_DBG("Set output");
+	LOG_DBG("Set output");
 	data[0] = runtime;
 	data[1] = sensor_value_to_double(&accel0[0]);
 	data[2] = sensor_value_to_double(&accel0[1]);
@@ -303,15 +294,20 @@ int sensor_measure(double *data)
 	// data[14] = sensor_value_to_double(&mag[0]);
 	// data[15] = sensor_value_to_double(&mag[1]);
 	// data[16] = sensor_value_to_double(&mag[2]);
-    data[14] = 0.0;
-    data[15] = 0.0;
-    data[16] = 0.0;
+	data[14] = 0.0;
+	data[15] = 0.0;
+	data[16] = 0.0;
 
 	return 0;
 }
 
 /**
  * @brief Get the sensor data as a JSON string
+ *      The JSON string will look like this:
+ *      { "timestamp": 0.0, "bmi270_ax": 0.0, "bmi270_ay": 0.0, "bmi270_az": 0.0, "bmi270_gx": 0.0,
+ *      "bmi270_gy": 0.0, "bmi270_gz": 0.0, "adxl_ax": 0.0, "adxl_ay": 0.0, "adxl_az": 0.0,
+ *      "bme680_temperature": 0.0, "bme680_pressure": 0.0, "bme680_humidity": 0.0, "bme680_gas": 0.0,
+ *      "bmm350_magn_x": 0.0, "bmm350_magn_y": 0.0, "bmm350_magn_z": 0.0 }
  *
  * @param buf Pointer to the buffer
  * @param len Length of the buffer
@@ -341,7 +337,7 @@ int sensors_get_json(char *buf, size_t len)
 					    "\"bmm350_magn_z\":%.03f"
 					    "}";
 
-    LOG_DBG("Getting sensor data");
+	LOG_DBG("Getting sensor data");
 
 	double data[NUM_SENSOR_MEASUREMENTS];
 	ret = sensor_measure(data);
@@ -350,13 +346,13 @@ int sensors_get_json(char *buf, size_t len)
 		return ret;
 	}
 
-    LOG_DBG("Got sensor data");
+	LOG_DBG("Got sensor data");
 
-	ret = snprintf(buf, len, sensors_json_template, data[0], data[1], data[2], data[3],
-		       data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11],
-		       data[12], data[13], data[14], data[15], data[16]);
+	ret = snprintf(buf, len, sensors_json_template, data[0], data[1], data[2], data[3], data[4],
+		       data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12],
+		       data[13], data[14], data[15], data[16]);
 
-    LOG_DBG("JSON-ified sensor data");
+	LOG_DBG("JSON-ified sensor data");
 	// LOG_INF("JSON: %s", buf);
 
 	if (ret >= len) {
