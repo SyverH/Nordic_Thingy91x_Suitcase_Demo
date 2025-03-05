@@ -318,69 +318,6 @@ int sensor_measure(double *data)
 	return 0;
 }
 
-int sensor_offset_calibration(double *offset_data)
-{
-    if (offset_data == NULL) {
-        LOG_ERR("offset_data is NULL");
-        return -EINVAL;
-    }
-
-    int ret;
-    // double data[3] = {0.0};
-    struct sensor_value data[3];
-
-    double sum_data[3] = {0.0};
-
-    for (int i = 0; i < GYRO_OFFSET_SAMPLES; i++) {
-        ret = sensor_sample_fetch(dev_bmi270);
-        if (ret) {
-            LOG_ERR("sensor_sample_fetch failed ret %d", ret);
-            return -1;
-        }
-
-        ret = sensor_channel_get(dev_bmi270, SENSOR_CHAN_GYRO_XYZ, data);
-        if (ret) {
-            LOG_ERR("sensor_channel_get failed ret %d", ret);
-            return -1;
-        }
-
-
-        sum_data[0] += sensor_value_to_double(&data[0]);
-        sum_data[1] += sensor_value_to_double(&data[1]);
-        sum_data[2] += sensor_value_to_double(&data[2]);
-
-        k_sleep(K_MSEC(20));
-    }
-
-    offset_data[0] = sum_data[0] / GYRO_OFFSET_SAMPLES;
-    offset_data[1] = sum_data[1] / GYRO_OFFSET_SAMPLES;
-    offset_data[2] = sum_data[2] / GYRO_OFFSET_SAMPLES;
-
-    // LOG_INF("Gyro offset: %f, %f, %f", offset_data[0], offset_data[1], offset_data[2]);
-
-    return 0;
-}
-
-int sensor_apply_offset_calibration(double *data, double *offset_data)
-{
-    if (data == NULL) {
-        LOG_ERR("data is NULL");
-        return -EINVAL;
-    }
-
-    if (offset_data == NULL) {
-        LOG_ERR("offset_data is NULL");
-        return -EINVAL;
-    }
-
-    for (int i = 0; i < 3; i++) {
-        // LOG_INF("Before: %f + %f = %f", data[4 + i], offset_data[i], data[4 + i] + offset_data[i]);
-        data[4 + i] += offset_data[i];
-    }
-
-    return 0;
-}
-
 /**
  * @brief Get the sensor data as a JSON string
  *
@@ -388,16 +325,9 @@ int sensor_apply_offset_calibration(double *data, double *offset_data)
  * @param len Length of the buffer
  * @return int Length of the JSON string if successful, negative error code otherwise.
  */
-int sensors_get_json(char *buf, size_t len, double *offset_data)
+int sensors_get_json(char *buf, size_t len)
 {
 	int ret;
-
-    if (offset_data == NULL) {
-        LOG_WRN("offset_data is NULL");
-        for(int i = 0; i < 3; i++) {
-            offset_data[i] = 0.0;
-        }
-    }
 
 	const char *sensors_json_template = "{"
 					    "\"count\":%.03f,"
@@ -429,14 +359,6 @@ int sensors_get_json(char *buf, size_t len, double *offset_data)
 	}
 
     LOG_DBG("Got sensor data");
-
-    ret = sensor_apply_offset_calibration(data, offset_data);
-    if (ret) {
-        LOG_ERR("sensor_apply_offset_calibration failed ret %d", ret);
-        return ret;
-    }
-
-    LOG_DBG("Applied offset calibration");
 
 	ret = snprintf(buf, len, sensors_json_template, data[0], data[1], data[2], data[3],
 		       data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11],

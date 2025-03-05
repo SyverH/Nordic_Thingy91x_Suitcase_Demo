@@ -37,7 +37,7 @@ let accel0_chart = new Highcharts.Chart({
 });
 
 
-// NOTE: The accelerometer ADXL367 is not ploted in the web interface as this is the same data as the BMI270
+// NOTE: The accelerometer ADXL367 is not plotted in the web interface as this is the same data as the BMI270
 // let accel1_chart = new Highcharts.Chart({
 //     chart: {
 //         renderTo: 'chart_accel1'
@@ -219,7 +219,7 @@ let press_chart = new Highcharts.Chart({
     }
 });
 
-// NOTE: The gas resistance is not ploted in the web interface as this value seems to be incorrect
+// NOTE: The gas resistance is not plotted in the web interface as this value seems to be incorrect
 // let gas_chart = new Highcharts.Chart({
 //     chart: {
 //         renderTo: 'chart_gas'
@@ -266,7 +266,7 @@ function updatePlots(data) {
         accel0_chart.series[2].addPoint([x, y], true, false, false);
     }
 
-    //NOTE: The accelerometer ADXL367 is not ploted in the web interface as this is the same data as the BMI270
+    //NOTE: The accelerometer ADXL367 is not plotted in the web interface as this is the same data as the BMI270
     // y = parseFloat(data.adxl_ax);
     // if (accel1_chart.series[0].data.length > 1000) {
     //     accel1_chart.series[0].addPoint([x, y], true, true, false);
@@ -345,7 +345,7 @@ function updatePlots(data) {
         press_chart.series[0].addPoint([x, y], true, false, false);
     }
 
-    //NOTE: The gas resistance is not ploted in the web interface as this value seems to be incorrect
+    //NOTE: The gas resistance is not plotted in the web interface as this value seems to be incorrect
     // y = parseFloat(data.bme680_gas);
     // if (gas_chart.series[0].data.length > 1000) {
     //     gas_chart.series[0].addPoint([x, y], true, true, false);
@@ -354,47 +354,71 @@ function updatePlots(data) {
     // }
 }
 
-
-class KalmanFilter {
-    constructor({ R = 1, Q = 1, A = 1, C = 1 } = {}) {
-
-        this.R = R; // Process noise
-        this.Q = Q; // Measurement noise
-
-        this.A = A; // State vector
-        this.C = C; // Measurement vector
-        this.cov = NaN; // covariance
-        this.x = NaN; // estimated signal without noise
-    }
-    filter(z) {
-
-        if (isNaN(this.x)) {
-            this.x = (1 / this.C) * z;
-            this.cov = (1 / this.C) * this.Q * (1 / this.C);
-        }
-        else {
-
-            // Compute prediction
-            const predX = (this.A * this.x);
-            const predCov = ((this.A * this.cov) * this.A) + this.R;
-
-            // Kalman gain
-            const K = predCov * this.C * (1 / ((this.C * predCov * this.C) + this.Q));
-
-            // Correction
-            this.x = predX + K * (z - (this.C * predX));
-            this.cov = predCov - (K * this.C * predCov);
-        }
-
-        return this.x;
-    }
-}
-
 function setSensorData(json_data, sensor_name) {
     document.getElementById(sensor_name).innerHTML = json_data[sensor_name];
 }
 
-function updateOrientation(roll, pitch, yaw) {
+class MovingAverageFilter {
+    constructor(windowSize, threshold) {
+        this.windowSize = windowSize;
+        this.threshold = threshold;
+        this.values = [];
+        this.sum = 0;
+    }
+
+    filter(value) {
+        if (Math.abs(value) < this.threshold) {
+            this.values.push(value);
+            this.sum += value;
+
+            if (this.values.length > this.windowSize) {
+                this.sum -= this.values.shift();
+            }
+        }
+        return this.sum / this.values.length;
+    }
+}
+
+const windowSize = 100; // Adjust the window size as needed
+const maFilterGx = new MovingAverageFilter(windowSize, 0.01);
+const maFilterGy = new MovingAverageFilter(windowSize, 0.01);
+const maFilterGz = new MovingAverageFilter(windowSize, 0.01);
+
+let old_time = 0;
+let roll = 0.0;
+let pitch = 0.0;
+let yaw = 0.0;
+
+function updateOrientation(data) {
+
+    let time = parseFloat(data.count);
+    if (old_time == 0) {
+        old_time = time;
+    }
+    let delta_time = time - old_time;
+    old_time = time;
+
+    let gx = parseFloat(data.bmi270_gx);
+    let gy = parseFloat(data.bmi270_gy);
+    let gz = parseFloat(data.bmi270_gz);
+
+    const dcOffsetGx = maFilterGx.filter(gx);
+    const dcOffsetGy = maFilterGy.filter(gy);
+    const dcOffsetGz = maFilterGz.filter(gz);
+
+    gx -= dcOffsetGx;
+    gy -= dcOffsetGy;
+    gz -= dcOffsetGz;
+
+    roll += gx * delta_time * 180 / Math.PI;
+    pitch += gy * delta_time * 180 / Math.PI;
+    yaw += gz * delta_time * 180 / Math.PI;
+
+    plotOrientation(roll, pitch, yaw);
+
+}
+
+function plotOrientation(roll, pitch, yaw) {
     // console.log("Roll: " + roll + " Pitch: " + pitch + " Yaw: " + yaw);
 
     const modelViewerTransform = document.querySelector("model-viewer#transform");
@@ -412,19 +436,7 @@ async function postRgbLed(hex_color) {
 
         const response = await fetch("/led", { method: "POST", body: payload });
         if (!response.ok) {
-            throw new Error(`Response satus: ${response.status}`);
-        }
-    }
-    catch (error) {
-        console.error(error.message);
-    }
-}
-
-async function postRecalibrate() {
-    try {
-        const response = await fetch("/recalibrate_gyro", { method: "POST" });
-        if (!response.ok) {
-            throw new Error(`Response satus: ${response.status}`);
+            throw new Error(`Response status: ${response.status}`);
         }
     }
     catch (error) {
@@ -437,15 +449,6 @@ window.addEventListener('load', function () {
     var modelViewer = document.getElementById('transform');
     modelViewer.setAttribute('src', modelViewer.getAttribute('data-src'));
 });
-
-let old_time = 0;
-let roll = 0.0;
-let pitch = 0.0;
-let yaw = 0.0;
-
-var kf1 = new KalmanFilter({ R: 0.05, Q: 1.0 });
-var kf2 = new KalmanFilter({ R: 0.05, Q: 1.0 });
-var kf3 = new KalmanFilter({ R: 0.05, Q: 1.0 });
 
 window.addEventListener("DOMContentLoaded", (ev) => {
 
@@ -462,11 +465,7 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         roll = 0.0;
         pitch = 0.0;
         yaw = 0.0;
-        updateOrientation(roll, pitch, yaw);
-    });
-
-    document.getElementById('recalibrate-offset-button').addEventListener('click', function () {
-        postRecalibrate();
+        plotOrientation(roll, pitch, yaw);
     });
 
     /* Setup websocket for handling network stats */
@@ -479,44 +478,31 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         // console.log("Received data");
 
         const data = JSON.parse(event.data);
-        setSensorData(data, "adxl_ax");
-        setSensorData(data, "adxl_ay");
-        setSensorData(data, "adxl_az");
+
+        
+        //NOTE: The accelerometer ADXL367 is not plotted in the web interface as this is the same data as the BMI270
+        // setSensorData(data, "adxl_ax");
+        // setSensorData(data, "adxl_ay");
+        // setSensorData(data, "adxl_az");
 
         setSensorData(data, "bme680_temperature");
         setSensorData(data, "bme680_humidity");
         setSensorData(data, "bme680_pressure");
+        //NOTE: The gas resistance is not plotted in the web interface as this value seems to be incorrect
         // setSensorData(data, "bme680_gas");
 
         setSensorData(data, "bmi270_gx");
         setSensorData(data, "bmi270_gy");
         setSensorData(data, "bmi270_gz");
-        // setSensorData(data, "bmi270_ax");
-        // setSensorData(data, "bmi270_ay");
-        // setSensorData(data, "bmi270_az");
+        setSensorData(data, "bmi270_ax");
+        setSensorData(data, "bmi270_ay");
+        setSensorData(data, "bmi270_az");
 
         setSensorData(data, "bmm350_magn_x");
         setSensorData(data, "bmm350_magn_y");
         setSensorData(data, "bmm350_magn_z");
-        
+
         updatePlots(data);
-
-        let time = parseFloat(data.count);
-        if (old_time == 0) {
-            old_time = time;
-        }
-        let delta_time = time - old_time;
-        old_time = time;
-
-        roll += delta_time * kf1.filter(parseFloat(data.bmi270_gx)) * 180 / Math.PI;
-        pitch += delta_time * kf2.filter(parseFloat(data.bmi270_gy)) * 180 / Math.PI;
-        yaw += delta_time * kf3.filter(parseFloat(data.bmi270_gz)) * 180 / Math.PI;
-
-        // console.log("time: " + time + " delta time: " + delta_time + " roll: " + roll + " pitch: " + pitch + " yaw: " + yaw);
-        console.log("gx: " + parseFloat(data.bmi270_gx) + " gy: " + parseFloat(data.bmi270_gy) + " gz: " + parseFloat(data.bmi270_gz));
-
-        updateOrientation(roll, pitch, yaw);
-
-
+        updateOrientation(data);
     }
 })

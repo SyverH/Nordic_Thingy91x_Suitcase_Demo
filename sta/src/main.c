@@ -32,7 +32,6 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 #include "http_resources.h"
 #include "wifi_sta.h"
 
-double sensor_offset_data[3] = {0.0};
 
 #ifdef CONFIG_SYS_HEAP_LISTENER
 #include <zephyr/sys/heap_listener.h>
@@ -123,7 +122,7 @@ static void sensor_handler(struct k_work *work)
 	struct ws_sensors_ctx *ctx = CONTAINER_OF(dwork, struct ws_sensors_ctx, work);
 
 	// ret = sensors_collect(tx_buf, sizeof(tx_buf));
-	ret = sensors_get_json(tx_buf, sizeof(tx_buf), sensor_offset_data);
+	ret = sensors_get_json(tx_buf, sizeof(tx_buf));
 	if (ret < 0) {
 		LOG_ERR("Unable to collect sensor data, err %d", ret);
 		goto unregister;
@@ -258,43 +257,6 @@ static int led_handler(struct http_client_ctx *client, enum http_data_status sta
 	return 0;
 }
 
-static int gyro_offset_handler(struct http_client_ctx *client, enum http_data_status status,
-               uint8_t *buffer, size_t len, void *user_data)
-{
-    static uint8_t post_payload_buf[32];
-    static size_t cursor;
-
-    LOG_WRN("Gyro offset handler status %d, size %zu", status, len);
-
-    if (status == HTTP_SERVER_DATA_ABORTED) {
-        cursor = 0;
-        return 0;
-    }
-
-    if (len + cursor > sizeof(post_payload_buf)) {
-        cursor = 0;
-        return -ENOMEM;
-    }
-
-    /* Copy payload to our buffer. Note that even for a small payload, it may arrive split into
-     * chunks (e.g. if the header size was such that the whole HTTP request exceeds the size of
-     * the client buffer).
-     */
-    memcpy(post_payload_buf + cursor, buffer, len);
-    cursor += len;
-
-    if (status == HTTP_SERVER_DATA_FINAL) {
-        LOG_WRN("Recalibrating gyro offset");
-        int ret = sensor_offset_calibration(sensor_offset_data);
-        if (ret) {
-            LOG_ERR("Failed to calibrate sensor offset");
-        }
-        cursor = 0;
-    }
-
-    return 0;
-}
-
 /**
  * @brief Function called when buttons are pressed.
  */
@@ -356,14 +318,7 @@ int main(void)
 		return ret;
 	}
 
-    ret = sensor_offset_calibration(sensor_offset_data);
-    if (ret) {
-        LOG_ERR("Failed to calibrate sensor offset");
-        return ret;
-    }
-
 	http_resources_set_led_handler(led_handler);
-    http_resources_set_recalibrate_gyro_handler(gyro_offset_handler);
 	http_resources_set_ws_handler(ws_sensors_setup);
 	wifi_sta_set_wifi_connected_cb(wifi_connected_handler);
 
