@@ -428,10 +428,14 @@ function plotOrientation(roll, pitch, yaw) {
     modelViewerTransform.orientation = `${pitch}deg ${roll}deg ${yaw}deg`;
 }
 
-async function postRgbLed(hex_color) {
-    let r = parseInt(hex_color.slice(1, 3), 16);
-    let g = parseInt(hex_color.slice(3, 5), 16);
-    let b = parseInt(hex_color.slice(5, 7), 16);
+async function postRgbLed(color) {
+    // let r = parseInt(hex_color.slice(1, 3), 16);
+    // let g = parseInt(hex_color.slice(3, 5), 16);
+    // let b = parseInt(hex_color.slice(5, 7), 16);
+
+    let r = color[0];
+    let g = color[1];
+    let b = color[2];
 
     try {
         const payload = JSON.stringify({ "r": r, "g": g, "b": b });
@@ -454,16 +458,16 @@ window.addEventListener('load', function () {
 
 window.addEventListener("DOMContentLoaded", (ev) => {
 
-    document.querySelector('.color-picker-container img').addEventListener('click', function () {
-        document.getElementById('color_picker').click();
-    });
+    // document.querySelector('.color-picker-container img').addEventListener('click', function () {
+    //     document.getElementById('color_picker').click();
+    // });
 
-    document.getElementById('color_picker').addEventListener('input', function (event) {
-        let color = event.target.value;
-        postRgbLed(color);
-    });
+    // document.getElementById('color_picker').addEventListener('input', function (event) {
+    //     let color = event.target.value;
+    //     postRgbLed(color);
+    // });
 
-    document.getElementById('reset-orientation-button').addEventListener('click', function () {
+    document.getElementById('reset-orientation').addEventListener('click', function () {
         roll = 0.0;
         pitch = 0.0;
         yaw = 0.0;
@@ -512,5 +516,28 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     
     window.addEventListener('beforeunload', function () {
         ws.close();
+    });
+});
+
+document.addEventListener('DOMContentLoaded', (event) => {
+    const colorWheel = document.getElementById('color_wheel');
+    const colorPicker = document.getElementById('color_picker');
+    const colorCanvas = document.getElementById('color_canvas');
+    const ctx = colorCanvas.getContext('2d');
+
+    colorWheel.addEventListener('click', (event) => {
+        const rect = colorWheel.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        colorCanvas.width = colorWheel.width;
+        colorCanvas.height = colorWheel.height;
+        ctx.drawImage(colorWheel, 0, 0, colorCanvas.width, colorCanvas.height);
+
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const rgbColor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+        console.log(rgbColor);
+
+        postRgbLed(pixel);
     });
 });

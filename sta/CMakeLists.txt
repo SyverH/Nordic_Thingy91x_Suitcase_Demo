@@ -25,7 +25,8 @@ foreach(web_resource
   index.html
   main.js
   styles.css
-  color_wheel.svg
+#   color_wheel.svg
+  Color_circle.svg
   Logo_Flat_RGB_Horizontal.svg
 #   Duck.glb
   thingy91x.glb

@@ -14,7 +14,7 @@
         <div class="header-text">Thingy91X WiFi Demo</div>
     </div>
 
-    <div class="top-container">
+    <!-- <div class="top-container">
         <div class="led-control">
             <h2>PWM LED Control</h2>
             <div class="led-control-container">
@@ -30,12 +30,32 @@
         <div class="model-container">
             <h2>3D Model</h2>
             <div class="model-container">
-                <!-- <model-viewer id="transform" alt="A 3D model of an Duck" data-src="Duck.glb" ></model-viewer> -->
                  <model-viewer id="transform" alt="A 3D model of the Thingy91x" data-src="thingy91x.glb" ></model-viewer>
             </div>
             <div class="orientaton-controll-container">
                 <button id="reset-orientation-button" title="Click to reset the 3D model orientation">Reset Orientation</button>
             </div>
+        </div>
+    </div> -->
+
+    <div class="top-container">
+        <div class="led-control-container">
+            <h2>PWM LED Control</h2>
+            <div class="led-control">
+                <img src="Color_circle.svg" alt="Color Spectrum" class="color-spectrum" id="color_wheel">
+                <input type="color" id="color_picker" value="#000000">
+                <canvas id="color_canvas" style="display:none;"></canvas>
+            </div>
+        </div>
+        <div class="model-container">
+            <h2>3D Model</h2>
+            <div class="model">
+                <model-viewer id="transform" class="model-viewer" alt="A 3D model of the Thingy91x" data-src="thingy91x.glb" ></model-viewer>
+            </div>
+            <button id="reset-orientation">Reset Orientation</button>
+        </div>
+        <div class="map-container">
+            <h2>Map</h2>
         </div>
     </div>
 

@@ -230,7 +230,7 @@ static int led_handler(struct http_client_ctx *client, enum http_data_status sta
 	static uint8_t post_payload_buf[32];
 	static size_t cursor;
 
-	LOG_WRN("LED handler status %d, size %zu", status, len);
+	LOG_DBG("LED handler status %d, size %zu", status, len);
 
 	if (status == HTTP_SERVER_DATA_ABORTED) {
 		cursor = 0;
