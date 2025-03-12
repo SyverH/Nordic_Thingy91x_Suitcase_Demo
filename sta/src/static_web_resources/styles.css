@@ -70,13 +70,41 @@ body {
     cursor: pointer;
 }
 
-.color-picker-container input[type="color"] {
+/* .color-picker-container input[type="color"] {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     opacity: 0;
+    cursor: pointer;
+} */
+
+.custom-color-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.color-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background-color: #000000; /* Default color */
+    cursor: pointer;
+    transition: box-shadow 0.3s ease;
+}
+
+.color-preview:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Add hover effect */
+}
+
+input[type="color"] {
+    position: absolute;
+    opacity: 0; /* Fully hide native input */
     cursor: pointer;
 }
 

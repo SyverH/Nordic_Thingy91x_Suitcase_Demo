@@ -36,6 +36,11 @@ setTimeout(() => {
     updateMarker(63.421642, 10.437172, 10, 15);;
 }, 5000);
 
+document.getElementById('color_picker').addEventListener('input', function () {
+    const selectedColor = this.value;
+    document.getElementById('color_preview').style.backgroundColor = selectedColor;
+});
+
 
 let accel0_chart = new Highcharts.Chart({
     chart: {
