@@ -5,10 +5,10 @@ body {
     box-sizing: border-box;
     background-color: #f0f0f0;
 }
-
+/* 
 div {
-    border: 1px solid black; /* You can customize the border style, width, and color */
-}
+    border: 1px solid black; 
+} */
 
 .top-line {
     position: absolute;
@@ -57,6 +57,7 @@ div {
     align-self: flex-start;
     align-items: center;
     /* justify-content: center; */
+    height: 50vh;
 }
 
 /* LED control */
@@ -129,6 +130,13 @@ div {
     flex-direction: column;
     align-items: center;
     width: 25%;
+    padding: 1vh;
+}
+
+#map {
+    height: 100%;
+    width: 100%;  /* Adjusted width to be responsive */
+    border: 1px solid #ccc; /* Optional: Add subtle border */
 }
 
 /* Sensor data */
@@ -172,24 +180,44 @@ div {
 }
 
 /* Responsive design */
-@media only screen and (max-width: 780px) {
+@media only screen and (max-width: 1280px) {
     .top-container {
-        flex-direction: column;
-        height: auto;
+        flex-direction: column; /* Switch to vertical stacking */
+        height: auto; /* Allow height to adjust dynamically */
+        justify-content: center; /* Center content vertically */
     }
-    .led-control-container {
-        width: 100%;
-    }
-    .model-container {
-        width: 100%;
-    }
+
+    .led-control-container,
+    .model-container,
     .map-container {
-        width: 100%;
+        width: 60%; /* Set consistent width */
+        height: 20vh; /* Explicitly enforce height */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0; /* Prevent collapsing */
     }
+
+    #map {
+        height: 25vh; /* Ensure consistent height for the map */
+        width: 100%; /* Full width */
+        display: block; /* Block rendering ensures no flex stretching */
+        border: 1px solid #ccc; /* Optional border styling */
+    }
+
+    /* Graph container fixes */
     #chart_div {
-        flex-direction: column;
+        flex-direction: column; /* Vertical stacking */
+        height: auto; /* Let height be flexible, but limit child growth */
+        align-items: center; /* Center children */
     }
+
     .container {
-        width: 100%;
+        width: 100%; /* Full width in column mode */
+        height: 40vh; /* Set fixed height */
+        max-height: 40vh; /* Limit maximum height strictly */
+        flex-shrink: 0; /* Prevent flex shrinking or growing */
+        overflow: hidden; /* Prevent content from breaking out */
+        box-sizing: border-box; /* Include borders/padding in width/height */
     }
 }
