@@ -1,4 +1,4 @@
-#include "wifi_sta.h"
+#include "wifi.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(WIFI_STA, CONFIG_WIFI_STA_LOG_LEVEL);
@@ -32,6 +32,121 @@ void wifi_sta_set_wifi_connected_cb(void *cb)
 {
 	wifi_connected_cb = cb;
 }
+
+static uint32_t scan_result;
+K_SEM_DEFINE(scan_sem, 0, 1);
+#define SCAN_TIMEOUT_MS 10000
+
+int wifi_channel_to_freq(int channel)
+{
+    if (channel == 14) {
+        return 2484;
+    } else if ((channel >= 1) && (channel <= 13)) {
+        return 2407 + (channel * 5);
+    } else if ((channel >= 36) && (channel <= 165)) {
+        return 5000 + (channel * 5);
+    } else {
+        return channel;
+    }
+}
+
+static void handle_wifi_scan_result(struct net_mgmt_event_callback *cb)
+{
+	const struct wifi_scan_result *entry =
+		(const struct wifi_scan_result *)cb->info;
+	uint8_t mac_string_buf[sizeof("xx:xx:xx:xx:xx:xx")];
+	uint8_t ssid_print[WIFI_SSID_MAX_LEN + 1];
+
+	scan_result++;
+
+	if (scan_result == 1U) {
+		printk("%-4s | %-32s %-5s | %-4s | %-10s | %-4s | %-12s | %s\n",
+		       "Num", "SSID", "(len)", "Chan", "Frequency", "RSSI", "Security", "BSSID");
+	}
+
+	strncpy(ssid_print, entry->ssid, sizeof(ssid_print) - 1);
+	ssid_print[sizeof(ssid_print) - 1] = '\0';
+
+	printk("%-4d | %-32s %-5u | %-4u | %-10d | %-4d | %-12s | %s\n",
+	       scan_result, ssid_print, entry->ssid_length,
+	       entry->channel, wifi_channel_to_freq(entry->channel),
+           entry->rssi,
+	       wifi_security_txt(entry->security),
+	       ((entry->mac_length) ?
+			net_sprint_ll_addr_buf(entry->mac, WIFI_MAC_ADDR_LEN, mac_string_buf,
+						sizeof(mac_string_buf)) : ""));
+}
+
+static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
+{
+	const struct wifi_status *status =
+		(const struct wifi_status *)cb->info;
+
+	if (status->status) {
+		LOG_ERR("Scan request failed (%d)", status->status);
+	} else {
+		printk("Scan request done\n");
+	}
+
+	scan_result = 0U;
+	k_sem_give(&scan_sem);
+}
+
+int wifi_scan(void)
+{
+	struct net_if *iface = net_if_get_default();
+	int band_str_len;
+	struct wifi_scan_params params = { 0 };
+
+	band_str_len = sizeof(CONFIG_WIFI_SCAN_BANDS_LIST);
+	if (band_str_len - 1) {
+		char *buf = malloc(band_str_len);
+
+		if (!buf) {
+			LOG_ERR("Malloc Failed");
+			return -EINVAL;
+		}
+		strcpy(buf, CONFIG_WIFI_SCAN_BANDS_LIST);
+		if (wifi_utils_parse_scan_bands(buf, &params.bands)) {
+			LOG_ERR("Incorrect value(s) in CONFIG_WIFI_SCAN_BANDS_LIST: %s",
+					CONFIG_WIFI_SCAN_BANDS_LIST);
+			free(buf);
+			return -ENOEXEC;
+		}
+		free(buf);
+	}
+
+	if (sizeof(CONFIG_WIFI_SCAN_CHAN_LIST) - 1) {
+		if (wifi_utils_parse_scan_chan(CONFIG_WIFI_SCAN_CHAN_LIST,
+						params.band_chan, ARRAY_SIZE(params.band_chan))) {
+			LOG_ERR("Incorrect value(s) in CONFIG_WIFI_SCAN_CHAN_LIST: %s",
+					CONFIG_WIFI_SCAN_CHAN_LIST);
+			return -ENOEXEC;
+		}
+	}
+
+	params.dwell_time_passive = CONFIG_WIFI_SCAN_DWELL_TIME_PASSIVE;
+	params.dwell_time_active = CONFIG_WIFI_SCAN_DWELL_TIME_ACTIVE;
+
+	if (IS_ENABLED(CONFIG_WIFI_SCAN_TYPE_PASSIVE)) {
+		params.scan_type = WIFI_SCAN_TYPE_PASSIVE;
+	} else {
+		params.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+	}
+
+	if (net_mgmt(NET_REQUEST_WIFI_SCAN, iface, &params,
+			sizeof(struct wifi_scan_params))) {
+		LOG_ERR("Scan request failed");
+		return -ENOEXEC;
+	}
+
+	printk("Scan requested\n");
+
+	k_sem_take(&scan_sem, K_MSEC(SCAN_TIMEOUT_MS));
+
+	return 0;
+}
+
 
 int cmd_wifi_status(void)
 {
@@ -201,9 +316,12 @@ void wifi_ready_cb(bool wifi_ready)
 }
 #endif /* CONFIG_WIFI_READY_LIB */
 
+
+
 void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event,
 			     struct net_if *iface)
 {
+
 	switch (mgmt_event) {
 	case NET_EVENT_WIFI_CONNECT_RESULT:
 		handle_wifi_connect_result(cb);
@@ -211,6 +329,20 @@ void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_e
 	case NET_EVENT_WIFI_DISCONNECT_RESULT:
 		handle_wifi_disconnect_result(cb);
 		break;
+
+    case NET_EVENT_WIFI_SCAN_RESULT:
+        handle_wifi_scan_result(cb);
+        break;
+        
+#ifdef CONFIG_WIFI_MGMT_RAW_SCAN_RESULTS
+    case NET_EVENT_WIFI_RAW_SCAN_RESULT:
+        handle_raw_scan_result(cb);
+        break;
+#endif /* CONFIG_WIFI_MGMT_RAW_SCAN_RESULTS */
+    case NET_EVENT_WIFI_SCAN_DONE:
+        handle_wifi_scan_done(cb);
+        break;
+
 	default:
 		break;
 	}

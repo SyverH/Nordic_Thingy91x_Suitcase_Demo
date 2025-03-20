@@ -140,33 +140,6 @@ struct http_resource_detail_static model_glb_gz_resource_detail = {
 HTTP_RESOURCE_DEFINE(model_glb_gz_resource, test_http_service, "/thingy91x.glb",
                      &model_glb_gz_resource_detail);
 
-////////////////// Recalibrate Gyro Button //////////////////
-// This is a button on the webpage that allows the user to recalibrate the gyroscope.
-// It is a dynamic resource that accepts POST requests with JSON payloads.
-
-static uint8_t recalibrate_gyro_buf[256]; // Buffer to store the JSON payload
-
-static struct http_resource_detail_dynamic recalibrate_gyro_resource_detail = {
-    .common =
-        {
-            .type = HTTP_RESOURCE_TYPE_DYNAMIC,
-            .bitmask_of_supported_http_methods = BIT(HTTP_POST),
-        },
-    .cb = NULL, // This is set by the http_resources_set_recalibrate_gyro_handler function to allow
-            // callback function to be defined in main.c
-    .data_buffer = recalibrate_gyro_buf,
-    .data_buffer_len = sizeof(recalibrate_gyro_buf),
-    .user_data = NULL,
-};
-
-HTTP_RESOURCE_DEFINE(recalibrate_gyro_resource, test_http_service, "/recalibrate_gyro",
-                     &recalibrate_gyro_resource_detail);
-
-void http_resources_set_recalibrate_gyro_handler(http_resource_dynamic_cb_t handler)
-{
-    recalibrate_gyro_resource_detail.cb = handler;
-}
-
 ////////////////// LED Resource //////////////////
 // This is the resource that is used to control the LEDs on the Thingy:91x.
 // It is a dynamic resource that accepts POST requests with JSON payloads.

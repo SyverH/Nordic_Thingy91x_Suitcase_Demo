@@ -30,8 +30,248 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 
 #include "sensors.h"
 #include "http_resources.h"
-#include "wifi_sta.h"
+#include "wifi.h"
 
+#include "JWT_token.h"
+
+
+#define HTTPS_PORT		"443"
+
+#define POST_URL        "/v1/location/wifi"
+#define JSON_BODY       "{\"accessPoints\":[{\"macAddress\": \"C8:7F:54:4C:21:B4\",\"signalStrength\": -49}, {\"macAddress\": \"4C:E1:75:01:15:6F\",\"signalStrength\": -51}]}"
+
+// JSON body length
+static const size_t json_body_length = sizeof(JSON_BODY) - 1;
+
+// Define a buffer large enough to hold headers and body
+#define SEND_BUF_SIZE 1024
+#define RECV_BUF_SIZE		2048
+static char recv_buf[RECV_BUF_SIZE];
+
+#define TLS_SEC_TAG		42
+
+static const char cert[] = {
+	#include "StarfieldServicesCertG2.pem.inc"
+
+	/* Null terminate certificate if running Mbed TLS on the application core.
+	 * Required by TLS credentials API.
+	 */
+	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))
+};
+
+/* Provision certificate to modem */
+int cert_provision(void)
+{
+	int err;
+
+	LOG_INF("Provisioning certificate\n");
+
+	err = tls_credential_add(TLS_SEC_TAG,
+				 TLS_CREDENTIAL_CA_CERTIFICATE,
+				 cert,
+				 sizeof(cert));
+	if (err == -EEXIST) {
+		LOG_WRN("CA certificate already exists, sec tag: %d\n", TLS_SEC_TAG);
+	} else if (err < 0) {
+		LOG_ERR("Failed to register CA certificate: %d\n", err);
+		return err;
+	}
+
+	return 0;
+}
+
+/* Setup TLS options on a given socket */
+int tls_setup(int fd)
+{
+	int err;
+	int verify;
+
+	/* Security tag that we have provisioned the certificate with */
+	const sec_tag_t tls_sec_tag[] = {
+		TLS_SEC_TAG,
+	};
+
+	/* Set up TLS peer verification */
+	enum {
+		NONE = 0,
+		OPTIONAL = 1,
+		REQUIRED = 2,
+	};
+
+	verify = REQUIRED;
+
+	err = setsockopt(fd, SOL_TLS, TLS_PEER_VERIFY, &verify, sizeof(verify));
+	if (err) {
+		LOG_ERR("Failed to setup peer verification, err %d\n", errno);
+		return err;
+	}
+
+	/* Associate the socket with the security tag
+	 * we have provisioned the certificate with.
+	 */
+	err = setsockopt(fd, SOL_TLS, TLS_SEC_TAG_LIST, tls_sec_tag, sizeof(tls_sec_tag));
+	if (err) {
+		LOG_ERR("Failed to setup TLS sec tag, err %d\n", errno);
+		return err;
+	}
+
+	err = setsockopt(fd, SOL_TLS, TLS_HOSTNAME,
+			CONFIG_HTTPS_HOSTNAME,
+			sizeof(CONFIG_HTTPS_HOSTNAME) - 1);
+	if (err) {
+		LOG_ERR("Failed to setup TLS hostname, err %d\n", errno);
+		return err;
+	}
+	return 0;
+}
+
+static void send_http_request(void)
+{
+	int err;
+	int fd;
+	char *p;
+	int bytes;
+	size_t off;
+	struct addrinfo *res;
+	struct addrinfo hints = {
+		.ai_flags = AI_NUMERICSERV, /* Let getaddrinfo() set port */
+		.ai_socktype = SOCK_STREAM,
+	};
+	char peer_addr[INET6_ADDRSTRLEN];
+
+    // // Calculate the required buffer size
+    // size_t required_size = HTTP_HEAD_LEN + 10 + HTTP_HDR_END_LEN + JSON_BODY_LEN + 1;
+
+    // // Allocate the buffer
+    // char send_buf[required_size];
+
+	LOG_INF("Looking up %s\n", CONFIG_HTTPS_HOSTNAME);
+
+	err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
+	if (err) {
+		LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+		return;
+	}
+
+	inet_ntop(res->ai_family, &((struct sockaddr_in *)(res->ai_addr))->sin_addr, peer_addr,
+		  INET6_ADDRSTRLEN);
+	LOG_INF("Resolved %s (%s)\n", peer_addr, net_family2str(res->ai_family));
+
+	if (IS_ENABLED(CONFIG_SAMPLE_TFM_MBEDTLS)) {
+		fd = socket(res->ai_family, SOCK_STREAM | SOCK_NATIVE_TLS, IPPROTO_TLS_1_2);
+	} else {
+		fd = socket(res->ai_family, SOCK_STREAM, IPPROTO_TLS_1_2);
+	}
+	if (fd == -1) {
+		LOG_ERR("Failed to open socket!\n");
+		goto clean_up;
+	}
+
+	/* Setup TLS socket options */
+	err = tls_setup(fd);
+	if (err) {
+		goto clean_up;
+	}
+
+	LOG_INF("Connecting to %s:%d\n", CONFIG_HTTPS_HOSTNAME,
+	       ntohs(((struct sockaddr_in *)(res->ai_addr))->sin_port));
+	err = connect(fd, res->ai_addr, res->ai_addrlen);
+	if (err) {
+		LOG_ERR("connect() failed, err: %d\n", errno);
+		goto clean_up;
+	}
+
+
+    char send_buf[SEND_BUF_SIZE];
+
+    // Formatted HTTP headers and body
+    int header_len = snprintf(
+        send_buf, sizeof(send_buf),
+        "POST %s HTTP/1.1\r\n"
+        "Host: %s:%s\r\n"
+        "Authorization: Bearer %s\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %zu\r\n"
+        "Connection: close\r\n\r\n%s",
+        POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN, json_body_length, JSON_BODY
+    );
+
+    // Check for truncation
+    if (header_len < 0 || header_len >= sizeof(send_buf)) {
+        LOG_ERR("Error: HTTP request buffer too small!\n");
+        return;
+    }
+
+    // Debug: Print HTTP request content
+    LOG_INF("\nHTTP Request:\n%s\n", send_buf);
+
+
+
+    off = 0;
+    do {
+        bytes = send(fd, &send_buf[off], header_len - off, 0);  // Send dynamically formatted buffer
+        if (bytes < 0) {
+            LOG_ERR("send() failed, err %d\n", errno);
+            return;
+        }
+        off += bytes;
+    } while (off < header_len);
+    
+    LOG_INF("Sent %d bytes\n", off);
+
+	off = 0;
+	do {
+		bytes = recv(fd, &recv_buf[off], RECV_BUF_SIZE - off, 0);
+        LOG_INF("bytes: %d\n\r", bytes);
+        LOG_INF("---------So far received: %s\n", recv_buf);
+		if (bytes < 0) {
+			LOG_ERR("recv() failed, err %d\n", errno);
+			goto clean_up;
+		}
+		off += bytes;
+
+
+	} while (bytes != 0 /* peer closed connection */);
+
+	LOG_INF("Received %d bytes\n", off);
+
+	/* Make sure recv_buf is NULL terminated (for safe use with strstr) */
+	if (off < sizeof(recv_buf)) {
+		recv_buf[off] = '\0';
+	} else {
+		recv_buf[sizeof(recv_buf) - 1] = '\0';
+	}
+
+	// /* Print HTTP response */
+	// p = strstr(recv_buf, "\r\n");
+	// if (p) {
+	// 	off = p - recv_buf;
+	// 	recv_buf[off + 1] = '\0';
+	// 	printk("\n>\t %s\n\n", recv_buf);
+	// }
+
+    /* Print the HTTP response */
+    LOG_INF("\nHTTP Response:\n");
+    LOG_INF("%s", recv_buf);  // Print the entire buffer content
+
+    /* Optional: Parse or process the response if needed */
+    char *header_end = strstr(recv_buf, "\r\n\r\n"); // Locate the end of headers
+    if (header_end) {
+        LOG_INF("\nHTTP Headers:\n");
+        *header_end = '\0';  // Temporarily terminate at the end of headers
+        LOG_INF("%s\n", recv_buf);  // Print headers
+        LOG_INF("\nHTTP Body:\n");
+        LOG_INF("%s\n", header_end + 4);  // Print the body after separating headers
+    } else {
+        LOG_WRN("Could not find end of headers.\n");
+    }
+
+	LOG_INF("Finished, closing socket.\n");
+
+clean_up:
+	freeaddrinfo(res);
+	(void)close(fd);
+}
 
 #ifdef CONFIG_SYS_HEAP_LISTENER
 #include <zephyr/sys/heap_listener.h>
@@ -51,7 +291,7 @@ void on_system_heap_alloc(uintptr_t heap_id, void *mem, size_t bytes)
 		system_heap_free = (uint32_t)system_heap_stats.free_bytes;
 		LOG_INF("system_heap ALLOC %zu. Heap state: allocated %zu, free %zu, max allocated "
 			"%zu, heap size %u.\n",
-			bytes, system_heap_free, system_heap_used, system_heap_max_used,
+			bytes, system_heap_used, system_heap_free, system_heap_max_used,
 			K_HEAP_MEM_POOL_SIZE);
 	}
 }
@@ -66,7 +306,7 @@ void on_system_heap_free(uintptr_t heap_id, void *mem, size_t bytes)
 		system_heap_free = (uint32_t)system_heap_stats.free_bytes;
 		LOG_INF("system_heap ALLOC %zu. Heap state: allocated %zu, free %zu, max allocated "
 			"%zu, heap size %u.\n",
-			bytes, system_heap_free, system_heap_used, system_heap_max_used,
+            bytes, system_heap_used, system_heap_free, system_heap_max_used,
 			K_HEAP_MEM_POOL_SIZE);
 	}
 }
@@ -76,7 +316,6 @@ HEAP_LISTENER_ALLOC_DEFINE(system_heap_listener_alloc, HEAP_ID_FROM_POINTER(&_sy
 HEAP_LISTENER_FREE_DEFINE(system_heap_listener_free, HEAP_ID_FROM_POINTER(&_system_heap),
 			  on_system_heap_free);
 #endif // CONFIG_SYS_HEAP_LISTENER
-
 
 static const struct pwm_dt_spec red_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 static const struct pwm_dt_spec green_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
@@ -275,6 +514,14 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
  */
 static void wifi_connected_handler(void)
 {
+    LOG_INF("Wi-Fi connected");
+
+    // Print Thread name
+    LOG_WRN("Thread name: %s\n", k_thread_name_get(k_current_get()));
+
+    // LOG_INF("Sending HTTP request");
+    send_http_request();
+
 	LOG_INF("HTTP server staring");
 	http_server_start();
 
@@ -318,6 +565,12 @@ int main(void)
 		return ret;
 	}
 
+    /* Provision certificates before connecting to the network */
+	ret = cert_provision();
+	if (ret) {
+		return 0;
+	}
+
 	http_resources_set_led_handler(led_handler);
 	http_resources_set_ws_handler(ws_sensors_setup);
 	wifi_sta_set_wifi_connected_cb(wifi_connected_handler);
@@ -328,6 +581,13 @@ int main(void)
     #endif // CONFIG_SYS_HEAP_LISTENER
 
 	net_mgmt_callback_init();
+
+    ret = wifi_scan();
+    if (ret) {
+        LOG_ERR("Failed to scan for Wi-Fi networks, err %d", ret);
+        return ret;
+    }
+
 
 #ifdef CONFIG_WIFI_READY_LIB
 	ret = register_wifi_ready();

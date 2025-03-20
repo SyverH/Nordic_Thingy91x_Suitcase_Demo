@@ -39,10 +39,18 @@ foreach(web_resource
   )
 endforeach()
 
+# Generate hex files from pem files
+set(gen_dir ${CMAKE_CURRENT_BINARY_DIR}/certs)
+zephyr_include_directories(${gen_dir})
+generate_inc_file_for_target(
+    app
+    cert/StarfieldServicesCertG2.pem
+    ${gen_dir}/StarfieldServicesCertG2.pem.inc
+    )
 
 target_sources(app PRIVATE
 	src/main.c
     src/sensors.c
     src/http_resources.c
-    src/wifi_sta.c
+    src/wifi.c
 )

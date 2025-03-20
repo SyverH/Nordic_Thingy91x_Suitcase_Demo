@@ -54,5 +54,8 @@ dkms.conf
 # build
 **/build*/
 
+# secret
+JWT_token.h
+
 .vscode/
 .DS_STORE
