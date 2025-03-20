@@ -15,12 +15,13 @@ The demo showcases following features:
 ## Requirements
 HW:
 - Thingy:91x
-- USB-C cable
 - Segger debugger or similar swd debugger
 
 SW:
 - Nordic SDK (**NCS**) v2.9.0
 
+Optional:
+- USB-C cable for logging, and net shell.
 
 ## Configuration 
 ### User Configurations
