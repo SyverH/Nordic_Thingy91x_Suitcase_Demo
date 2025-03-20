@@ -34,30 +34,30 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 
 #include "JWT_token.h"
 
+#define HTTPS_PORT "443"
 
-#define HTTPS_PORT		"443"
-
-#define POST_URL        "/v1/location/wifi"
-#define JSON_BODY       "{\"accessPoints\":[{\"macAddress\": \"C8:7F:54:4C:21:B4\",\"signalStrength\": -49}, {\"macAddress\": \"4C:E1:75:01:15:6F\",\"signalStrength\": -51}]}"
+#define POST_URL "/v1/location/wifi"
+#define JSON_BODY                                                                                  \
+	"{\"accessPoints\":[{\"macAddress\": \"C8:7F:54:4C:21:B4\",\"signalStrength\": -49}, "     \
+	"{\"macAddress\": \"4C:E1:75:01:15:6F\",\"signalStrength\": -51}]}"
 
 // JSON body length
 static const size_t json_body_length = sizeof(JSON_BODY) - 1;
 
 // Define a buffer large enough to hold headers and body
 #define SEND_BUF_SIZE 1024
-#define RECV_BUF_SIZE		2048
+#define RECV_BUF_SIZE 2048
 static char recv_buf[RECV_BUF_SIZE];
 
-#define TLS_SEC_TAG		42
+#define TLS_SEC_TAG 42
 
 static const char cert[] = {
-	#include "StarfieldServicesCertG2.pem.inc"
+#include "StarfieldServicesCertG2.pem.inc"
 
 	/* Null terminate certificate if running Mbed TLS on the application core.
 	 * Required by TLS credentials API.
 	 */
-	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))
-};
+	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))};
 
 /* Provision certificate to modem */
 int cert_provision(void)
@@ -66,10 +66,7 @@ int cert_provision(void)
 
 	LOG_INF("Provisioning certificate\n");
 
-	err = tls_credential_add(TLS_SEC_TAG,
-				 TLS_CREDENTIAL_CA_CERTIFICATE,
-				 cert,
-				 sizeof(cert));
+	err = tls_credential_add(TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, cert, sizeof(cert));
 	if (err == -EEXIST) {
 		LOG_WRN("CA certificate already exists, sec tag: %d\n", TLS_SEC_TAG);
 	} else if (err < 0) {
@@ -115,9 +112,8 @@ int tls_setup(int fd)
 		return err;
 	}
 
-	err = setsockopt(fd, SOL_TLS, TLS_HOSTNAME,
-			CONFIG_HTTPS_HOSTNAME,
-			sizeof(CONFIG_HTTPS_HOSTNAME) - 1);
+	err = setsockopt(fd, SOL_TLS, TLS_HOSTNAME, CONFIG_HTTPS_HOSTNAME,
+			 sizeof(CONFIG_HTTPS_HOSTNAME) - 1);
 	if (err) {
 		LOG_ERR("Failed to setup TLS hostname, err %d\n", errno);
 		return err;
@@ -129,7 +125,6 @@ static void send_http_request(void)
 {
 	int err;
 	int fd;
-	char *p;
 	int bytes;
 	size_t off;
 	struct addrinfo *res;
@@ -139,11 +134,11 @@ static void send_http_request(void)
 	};
 	char peer_addr[INET6_ADDRSTRLEN];
 
-    // // Calculate the required buffer size
-    // size_t required_size = HTTP_HEAD_LEN + 10 + HTTP_HDR_END_LEN + JSON_BODY_LEN + 1;
+	// // Calculate the required buffer size
+	// size_t required_size = HTTP_HEAD_LEN + 10 + HTTP_HDR_END_LEN + JSON_BODY_LEN + 1;
 
-    // // Allocate the buffer
-    // char send_buf[required_size];
+	// // Allocate the buffer
+	// char send_buf[required_size];
 
 	LOG_INF("Looking up %s\n", CONFIG_HTTPS_HOSTNAME);
 
@@ -174,62 +169,62 @@ static void send_http_request(void)
 	}
 
 	LOG_INF("Connecting to %s:%d\n", CONFIG_HTTPS_HOSTNAME,
-	       ntohs(((struct sockaddr_in *)(res->ai_addr))->sin_port));
+		ntohs(((struct sockaddr_in *)(res->ai_addr))->sin_port));
 	err = connect(fd, res->ai_addr, res->ai_addrlen);
 	if (err) {
 		LOG_ERR("connect() failed, err: %d\n", errno);
 		goto clean_up;
 	}
 
+	char send_buf[SEND_BUF_SIZE];
 
-    char send_buf[SEND_BUF_SIZE];
-
-    // Formatted HTTP headers and body
-    int header_len = snprintf(
-        send_buf, sizeof(send_buf),
-        "POST %s HTTP/1.1\r\n"
-        "Host: %s:%s\r\n"
-        "Authorization: Bearer %s\r\n"
-        "Content-Type: application/json\r\n"
-        "Content-Length: %zu\r\n"
-        "Connection: close\r\n\r\n%s",
-        POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN, json_body_length, JSON_BODY
-    );
-
-    // Check for truncation
-    if (header_len < 0 || header_len >= sizeof(send_buf)) {
-        LOG_ERR("Error: HTTP request buffer too small!\n");
-        return;
-    }
-
-    // Debug: Print HTTP request content
-    LOG_INF("\nHTTP Request:\n%s\n", send_buf);
-
-
-
-    off = 0;
-    do {
-        bytes = send(fd, &send_buf[off], header_len - off, 0);  // Send dynamically formatted buffer
-        if (bytes < 0) {
-            LOG_ERR("send() failed, err %d\n", errno);
-            return;
-        }
-        off += bytes;
-    } while (off < header_len);
     
-    LOG_INF("Sent %d bytes\n", off);
+// #define JSON_BODY                                                                                  \
+// "{\"accessPoints\":[{\"macAddress\": \"C8:7F:54:4C:21:B4\",\"signalStrength\": -49}, {\"macAddress\": \"4C:E1:75:01:15:6F\",\"signalStrength\": -51}]}"
+    extern char nrfcloud_api_str[CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR * 65];
+
+	// Formatted HTTP headers and body
+	int header_len = snprintf(send_buf, sizeof(send_buf),
+				  "POST %s HTTP/1.1\r\n"
+				  "Host: %s:%s\r\n"
+				  "Authorization: Bearer %s\r\n"
+				  "Content-Type: application/json\r\n"
+				  "Content-Length: %zu\r\n"
+				  "Connection: close\r\n\r\n"
+                  "{\"accessPoints\":[%s]}",
+				  POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN,
+				  (sizeof(nrfcloud_api_str) + 17), nrfcloud_api_str);
+
+	// Check for truncation
+	if (header_len < 0 || header_len >= sizeof(send_buf)) {
+		LOG_ERR("Error: HTTP request buffer too small!\n");
+		return;
+	}
+
+	// Debug: Print HTTP request content
+	LOG_INF("\nHTTP Request:\n%s\n", send_buf);
+
+	off = 0;
+	do {
+		bytes = send(fd, &send_buf[off], header_len - off,
+			     0); // Send dynamically formatted buffer
+		if (bytes < 0) {
+			LOG_ERR("send() failed, err %d\n", errno);
+			return;
+		}
+		off += bytes;
+	} while (off < header_len);
+
+	LOG_INF("Sent %d bytes\n", off);
 
 	off = 0;
 	do {
 		bytes = recv(fd, &recv_buf[off], RECV_BUF_SIZE - off, 0);
-        LOG_INF("bytes: %d\n\r", bytes);
-        LOG_INF("---------So far received: %s\n", recv_buf);
 		if (bytes < 0) {
 			LOG_ERR("recv() failed, err %d\n", errno);
 			goto clean_up;
 		}
 		off += bytes;
-
 
 	} while (bytes != 0 /* peer closed connection */);
 
@@ -250,23 +245,46 @@ static void send_http_request(void)
 	// 	printk("\n>\t %s\n\n", recv_buf);
 	// }
 
-    /* Print the HTTP response */
-    LOG_INF("\nHTTP Response:\n");
-    LOG_INF("%s", recv_buf);  // Print the entire buffer content
+	// /* Print the HTTP response */
+	// LOG_INF("\nHTTP Response:\n");
+	// LOG_INF("%s", recv_buf);  // Print the entire buffer content
 
-    /* Optional: Parse or process the response if needed */
-    char *header_end = strstr(recv_buf, "\r\n\r\n"); // Locate the end of headers
-    if (header_end) {
-        LOG_INF("\nHTTP Headers:\n");
-        *header_end = '\0';  // Temporarily terminate at the end of headers
-        LOG_INF("%s\n", recv_buf);  // Print headers
-        LOG_INF("\nHTTP Body:\n");
-        LOG_INF("%s\n", header_end + 4);  // Print the body after separating headers
-    } else {
-        LOG_WRN("Could not find end of headers.\n");
-    }
+	/* Optional: Parse or process the response if needed */
+	char *header_end = strstr(recv_buf, "\r\n\r\n"); // Locate the end of headers
+	if (header_end) {
+		LOG_INF("========================================");
+		LOG_INF("\nHTTP Headers:\n");
+		*header_end = '\0';        // Temporarily terminate at the end of headers
+		LOG_INF("%s\n", recv_buf); // Print headers
+		LOG_INF("========================================");
+		LOG_INF("\nHTTP Body:\n");
+		LOG_INF("%s\n", header_end + 4); // Print the body after separating headers
+		LOG_INF("========================================");
+	} else {
+		LOG_WRN("Could not find end of headers.\n");
+	}
 
 	LOG_INF("Finished, closing socket.\n");
+
+	char tx_buf[256];
+	int ret = snprintf(tx_buf, sizeof(tx_buf), "%s", header_end + 4);
+	if (ret < 0) {
+		LOG_ERR("Failed to format response\n");
+		goto clean_up;
+	}
+
+	http_resources_set_location(tx_buf);
+
+	// struct ws_sensors_ctx *ctx = NULL;
+
+	// http_resources_get_ws_ctx(&ctx);
+
+	// int ret = websocket_send_msg(ctx->sock, tx_buf, ret, WEBSOCKET_OPCODE_DATA_TEXT, false,
+	// true,
+	//     SYS_FOREVER_MS);
+	// if (ret < 0) {
+	// LOG_INF("Couldn't send websocket msg (%d), closing connection", ret);
+	// }
 
 clean_up:
 	freeaddrinfo(res);
@@ -306,7 +324,7 @@ void on_system_heap_free(uintptr_t heap_id, void *mem, size_t bytes)
 		system_heap_free = (uint32_t)system_heap_stats.free_bytes;
 		LOG_INF("system_heap ALLOC %zu. Heap state: allocated %zu, free %zu, max allocated "
 			"%zu, heap size %u.\n",
-            bytes, system_heap_used, system_heap_free, system_heap_max_used,
+			bytes, system_heap_used, system_heap_free, system_heap_max_used,
 			K_HEAP_MEM_POOL_SIZE);
 	}
 }
@@ -323,34 +341,34 @@ static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2
 
 int pwm_set_color(int red, int green, int blue)
 {
-    int ret;
+	int ret;
 
-    LOG_DBG("PWM_Color: Red: %d, Green: %d, Blue: %d \n", red, green, blue);
-    
-    // uint32_t period = red_pwm_led.period;
-    red = (red * red_pwm_led.period) / 255;
-    green = (green * green_pwm_led.period) / 255;
-    blue = (blue * blue_pwm_led.period) / 255;
+	LOG_DBG("PWM_Color: Red: %d, Green: %d, Blue: %d \n", red, green, blue);
 
-    ret = pwm_set_pulse_dt(&red_pwm_led, red);
-    if (ret != 0) {
-        LOG_ERR("Error %d: red write failed\n", ret);
-        return ret;
-    }
+	// uint32_t period = red_pwm_led.period;
+	red = (red * red_pwm_led.period) / 255;
+	green = (green * green_pwm_led.period) / 255;
+	blue = (blue * blue_pwm_led.period) / 255;
 
-    ret = pwm_set_pulse_dt(&green_pwm_led, green);
-    if (ret != 0) {
-        LOG_ERR("Error %d: green write failed\n", ret);
-        return ret;
-    }
+	ret = pwm_set_pulse_dt(&red_pwm_led, red);
+	if (ret != 0) {
+		LOG_ERR("Error %d: red write failed\n", ret);
+		return ret;
+	}
 
-    ret = pwm_set_pulse_dt(&blue_pwm_led, blue);
-    if (ret != 0) {
-        LOG_ERR("Error %d: blue write failed\n", ret);
-        return ret;
-    }
+	ret = pwm_set_pulse_dt(&green_pwm_led, green);
+	if (ret != 0) {
+		LOG_ERR("Error %d: green write failed\n", ret);
+		return ret;
+	}
 
-    return 0;
+	ret = pwm_set_pulse_dt(&blue_pwm_led, blue);
+	if (ret != 0) {
+		LOG_ERR("Error %d: blue write failed\n", ret);
+		return ret;
+	}
+
+	return 0;
 }
 
 static void sensor_handler(struct k_work *work)
@@ -365,7 +383,7 @@ static void sensor_handler(struct k_work *work)
 	if (ret < 0) {
 		LOG_ERR("Unable to collect sensor data, err %d", ret);
 		goto unregister;
-	}   
+	}
 
 	ret = websocket_send_msg(ctx->sock, tx_buf, ret, WEBSOCKET_OPCODE_DATA_TEXT, false, true,
 				 SYS_FOREVER_MS);
@@ -448,7 +466,7 @@ static void parse_led_post(uint8_t *buf, size_t len)
 	struct led_command cmd;
 	const int expected_return_code = BIT_MASK(ARRAY_SIZE(led_command_descr));
 
-    LOG_DBG("Got POST request with payload: %s", buf);
+	LOG_DBG("Got POST request with payload: %s", buf);
 
 	ret = json_obj_parse(buf, len, led_command_descr, ARRAY_SIZE(led_command_descr), &cmd);
 	if (ret != expected_return_code) {
@@ -456,11 +474,10 @@ static void parse_led_post(uint8_t *buf, size_t len)
 		return;
 	}
 
-    ret = pwm_set_color(cmd.r, cmd.g, cmd.b);
-    if (ret) {
-        LOG_ERR("Failed to set LED color");
-    }
-
+	ret = pwm_set_color(cmd.r, cmd.g, cmd.b);
+	if (ret) {
+		LOG_ERR("Failed to set LED color");
+	}
 }
 
 static int led_handler(struct http_client_ctx *client, enum http_data_status status,
@@ -514,21 +531,62 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
  */
 static void wifi_connected_handler(void)
 {
-    LOG_INF("Wi-Fi connected");
+	LOG_INF("Wi-Fi connected");
 
-    // Print Thread name
-    LOG_WRN("Thread name: %s\n", k_thread_name_get(k_current_get()));
+	// Print Thread name
+	LOG_WRN("Thread name: %s\n", k_thread_name_get(k_current_get()));
 
-    // LOG_INF("Sending HTTP request");
-    send_http_request();
+	// LOG_INF("Sending HTTP request");
+	send_http_request();
 
 	LOG_INF("HTTP server staring");
 	http_server_start();
 
-    int ret = pwm_set_color(0, 255, 0);
-    if (ret) {
-        LOG_ERR("Failed to set LED color");
-    }
+	int ret = pwm_set_color(0, 255, 0);
+	if (ret) {
+		LOG_ERR("Failed to set LED color");
+	}
+}
+
+static int location_handler(struct http_client_ctx *client, enum http_data_status status,
+			     uint8_t *buffer, size_t len, void *user_data)
+{
+	static bool response_sent;
+
+    extern char location_buf[256];
+
+	LOG_WRN("Location handler status %d, response_sent %d", status, response_sent);
+
+	switch (status) {
+	case HTTP_SERVER_DATA_ABORTED: {
+		response_sent = false;
+		return 0;
+	}
+
+	case HTTP_SERVER_DATA_MORE: {
+		/* A payload is not expected with the GET request. Ignore any data and wait until
+		 * final callback before sending response
+		 */
+		return 0;
+	}
+
+	case HTTP_SERVER_DATA_FINAL: {
+		if (response_sent) {
+			/* Response already sent, return 0 to indicate to server that the callback
+			 * does not need to be called again.
+			 */
+			response_sent = false;
+			return 0;
+		}
+
+		response_sent = true;
+		return snprintf(buffer, sizeof(location_buf), "%s", location_buf);
+	}
+	default: {
+		LOG_WRN("Unexpected status %d", status);
+		return -1;
+	}
+	}
 }
 
 int main(void)
@@ -541,17 +599,16 @@ int main(void)
 	// 	return -1;
 	// }
 
-    if (!pwm_is_ready_dt(&red_pwm_led) ||
-	    !pwm_is_ready_dt(&green_pwm_led) ||
+	if (!pwm_is_ready_dt(&red_pwm_led) || !pwm_is_ready_dt(&green_pwm_led) ||
 	    !pwm_is_ready_dt(&blue_pwm_led)) {
 		LOG_ERR("Error: one or more PWM devices not ready\n");
 		return 0;
 	}
 
-    ret = pwm_set_color(255, 0, 0);
-    if (ret) {
-        LOG_ERR("Failed to set LED color");
-    }
+	ret = pwm_set_color(255, 0, 0);
+	if (ret) {
+		LOG_ERR("Failed to set LED color");
+	}
 
 	ret = dk_buttons_init(button_handler);
 	if (ret != 0) {
@@ -565,7 +622,7 @@ int main(void)
 		return ret;
 	}
 
-    /* Provision certificates before connecting to the network */
+	/* Provision certificates before connecting to the network */
 	ret = cert_provision();
 	if (ret) {
 		return 0;
@@ -574,20 +631,20 @@ int main(void)
 	http_resources_set_led_handler(led_handler);
 	http_resources_set_ws_handler(ws_sensors_setup);
 	wifi_sta_set_wifi_connected_cb(wifi_connected_handler);
+	http_resources_set_location_handler(location_handler);
 
-    #ifdef CONFIG_SYS_HEAP_LISTENER
-    heap_listener_register(&system_heap_listener_alloc);
+#ifdef CONFIG_SYS_HEAP_LISTENER
+		heap_listener_register(&system_heap_listener_alloc);
 	heap_listener_register(&system_heap_listener_free);
-    #endif // CONFIG_SYS_HEAP_LISTENER
+#endif // CONFIG_SYS_HEAP_LISTENER
 
 	net_mgmt_callback_init();
 
-    ret = wifi_scan();
-    if (ret) {
-        LOG_ERR("Failed to scan for Wi-Fi networks, err %d", ret);
-        return ret;
-    }
-
+	ret = wifi_scan();
+	if (ret) {
+		LOG_ERR("Failed to scan for Wi-Fi networks, err %d", ret);
+		return ret;
+	}
 
 #ifdef CONFIG_WIFI_READY_LIB
 	ret = register_wifi_ready();

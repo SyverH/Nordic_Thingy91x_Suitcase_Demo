@@ -32,9 +32,9 @@ function updateMarker(lat, lon, uncertainty, zoom) {
 }
 
 // After 5 seconds, update the marker position using remove and reset
-setTimeout(() => {
-    updateMarker(63.421642, 10.437172, 10, 15);;
-}, 5000);
+// setTimeout(() => {
+//     updateMarker(63.421642, 10.437172, 10, 15);;
+// }, 5000);
 
 document.getElementById('color_picker').addEventListener('input', function () {
     const selectedColor = this.value;
@@ -510,6 +510,21 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     //     let color = event.target.value;
     //     postRgbLed(color);
     // });
+
+    fetch("/location")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Response status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            updateMarker(data.lat, data.lon, data.uncertainty, 15);
+        })
+        .catch(error => {
+            console.error(error.message);
+        });
 
     document.getElementById('reset-orientation').addEventListener('click', function () {
         roll = 0.0;

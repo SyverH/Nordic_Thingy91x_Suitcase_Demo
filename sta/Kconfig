@@ -92,6 +92,12 @@ endmenu
 
 menu "Nordic Scan sample"
 
+config WIFI_SCAN_STR_MAX_MAC_ADDR
+    int "Maximum length of MAC address string"
+    default 10
+    help
+      Maximum length of MAC address string.
+
 config WIFI_MAC_ADDRESS
 	string "WiFi MAC address"
 	default "F6:CE:36:00:00:01"

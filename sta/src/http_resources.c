@@ -198,3 +198,34 @@ void http_resources_get_ws_ctx(struct ws_sensors_ctx **ctx)
 {
 	*ctx = sensors_ctx;
 }
+
+//////////////////////////////////////// Location Resource //////////////////////////////////////////
+// GET /location
+// This is a dynamic resource that returns the location of the device.
+
+uint8_t location_buf[256]; // Buffer to store the location
+
+static struct http_resource_detail_dynamic location_resource_detail = {
+    .common =
+        {
+            .type = HTTP_RESOURCE_TYPE_DYNAMIC,
+            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+        },
+    .cb = NULL, // This is set by the http_resources_set_location_handler function to allow callback
+            // function to be defined in main.c
+    .data_buffer = location_buf,
+    .data_buffer_len = sizeof(location_buf),
+    .user_data = NULL,
+};
+
+HTTP_RESOURCE_DEFINE(location_resource, test_http_service, "/location", &location_resource_detail);
+
+void http_resources_set_location_handler(http_resource_dynamic_cb_t handler)
+{
+    location_resource_detail.cb = handler;
+}
+
+void http_resources_set_location(const char *location)
+{
+    strncpy(location_buf, location, sizeof(location_buf));
+}
