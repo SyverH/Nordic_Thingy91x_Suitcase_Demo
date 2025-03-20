@@ -5,10 +5,10 @@ body {
     box-sizing: border-box;
     background-color: #f0f0f0;
 }
-
+/* 
 div {
-    border: 1px solid black; /* You can customize the border style, width, and color */
-}
+    border: 1px solid black; 
+} */
 
 .top-line {
     position: absolute;
