@@ -1,4 +1,3 @@
-/* Global Styles */
 body {
     font-family: 'Roboto', sans-serif;
     margin: 0;
@@ -7,7 +6,10 @@ body {
     background-color: #f0f0f0;
 }
 
-/* Top Header (Logo and Title) */
+div {
+    border: 1px solid black; /* You can customize the border style, width, and color */
+}
+
 .top-line {
     position: absolute;
     top: 0;
@@ -19,118 +21,130 @@ body {
     align-items: center;
     justify-content: center;
 }
-
 .logo {
     position: absolute;
     top: 10%;
     left: 1%;
-    height: 80%;
+    height: 80%; /* Adjust the height relative to the header */
+    width: auto; /* Maintain aspect ratio */
     max-width: 25%;
 }
-
 .header-text {
-    font-size: clamp(1rem, 4vw, 3rem); /* Responsively scales text */
-    color: #0B1215;
+    font-size: clamp(1rem, 2vw + 2vh, 3rem); /* Min 1rem, preferred 4vw + 4vh, max 3rem */
+    color: #0B1215; /* Set text color */
     font-weight: 500;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    text-align: center; /* Center align text */
 }
 
-/* LED Control and Map Section */
-.top-header {
-    margin-top: 10.5vh; /* Space below the header */
+.top-container {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    align-items: flex-start;
-    padding: 1vh 2vw;
-    gap: 2rem;
+    align-items: center;
+    padding: 5vh;
+    /* height: 50vh; */
+    min-height: -moz-fit-content; /* Firefox */
+    min-height:fit-content; /* Standard */
+    margin-top: 5vh;
 }
 
-.led-control-container, .map-container {
+.led-control-container, .model-container, .map-container {
+    flex: 1; /* Ensures all containers take equal space */
+    align-self: flex-start;
+    align-items: center;
+    /* justify-content: center; */
+}
+
+/* LED control */
+.led-control-container {
+    display: flex;
+    flex-direction: column; /* Stack inputs vertically */
+    /* align-items: center; */
+    width: 25%;
+    padding: 1vh;
+}
+
+.led-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 1vh;
+}
+
+.led-control img {
+    cursor: pointer;
+    width: 80%;
+}
+
+.led-control-container input[type="color"] {
+    display: none;
+}
+
+/* 3D model */
+.model-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    width: 25%;
+    padding: 1vh;
 }
 
-.led-control-container h2, .map-container h2 {
-    margin-bottom: 0;
-}
-
-.color-picker-container {
-    position: relative;
-}
-
-.color-spectrum {
-    width: clamp(50px, 4vw, 100px); /* Scales responsively */
-    height: auto;
+.model-container button {
+    /* margin: 10px; */
+    padding: 10px;
+    font-size: clamp(1rem, 0.5vw + 0.5vh, 3rem);
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
+    width: 50%;
 }
 
-/* .color-picker-container input[type="color"] {
-    position: absolute;
-    top: 0;
-    left: 0;
+.model-container button:hover {
+    filter: brightness(90%);
+}
+
+.model-container .model {
+    width: 80%;
+    aspect-ratio: 1/0.8;
+    margin: 1vh;
+}
+
+.model-container .model .model-viewer {
     width: 100%;
     height: 100%;
-    opacity: 0;
-    cursor: pointer;
-} */
+}
 
-.custom-color-picker {
+
+/* Map */
+.map-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    cursor: pointer;
+    width: 25%;
 }
 
-.color-preview {
-    width: 50px;
-    height: 50px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    background-color: #000000; /* Default color */
-    cursor: pointer;
-    transition: box-shadow 0.3s ease;
-}
-
-.color-preview:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Add hover effect */
-}
-
-input[type="color"] {
-    position: absolute;
-    opacity: 0; /* Fully hide native input */
-    cursor: pointer;
-}
-
-#map {
-    height: 25vh; /* Adjusted height */
-    width: 25vh;  /* Adjusted width */
-    border: 1px solid #ccc; /* Optional: Add subtle border */
-}
-
-/* Sensor Section */
+/* Sensor data */
 .sensor-section {
+    margin-top: 0;
     padding-left: 1vw;
     text-align: center;
 }
-
 .sensor-section h2 {
     margin-bottom: 0;
 }
-
 .sensor-container {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    flex-wrap: wrap;
 }
-
 .sensor-value {
     margin: 0.5vh;
     padding: 1vh;
@@ -142,14 +156,12 @@ input[type="color"] {
     text-align: center;
     box-sizing: border-box;
 }
-
-/* Graph Containers */
+/* Graph container */
 #chart_div {
     display: flex;
     flex-direction: row;
     width: 100%;
 }
-
 .container {
     flex: 1;
     margin: 0.5vh;
@@ -159,11 +171,25 @@ input[type="color"] {
     height: 50vh;
 }
 
+/* Responsive design */
 @media only screen and (max-width: 780px) {
+    .top-container {
+        flex-direction: column;
+        height: auto;
+    }
+    .led-control-container {
+        width: 100%;
+    }
+    .model-container {
+        width: 100%;
+    }
+    .map-container {
+        width: 100%;
+    }
     #chart_div {
-        flex-direction: column; /* Stacks charts vertically on smaller screens */
+        flex-direction: column;
     }
     .container {
-        width: 100%; /* Ensure charts take full width in column layout */
+        width: 100%;
     }
 }

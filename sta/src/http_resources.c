@@ -52,26 +52,48 @@ struct http_resource_detail_static main_js_gz_resource_detail = {
 HTTP_RESOURCE_DEFINE(main_js_gz_resource, test_http_service, "/main.js",
 		     &main_js_gz_resource_detail);
 
+////////////////// styles CSS //////////////////
+// This is the CSS file that is loaded by the index.html file.
+
+static const uint8_t styles_css_gz[] = {
+#include "styles.css.gz.inc"
+};
+
+struct http_resource_detail_static styles_css_gz_resource_detail = {
+    .common =
+        {
+            .type = HTTP_RESOURCE_TYPE_STATIC,
+            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+            .content_encoding = "gzip",
+            .content_type = "text/css",
+        },
+    .static_data = styles_css_gz,
+    .static_data_len = sizeof(styles_css_gz),
+};
+
+HTTP_RESOURCE_DEFINE(styles_css_gz_resource, test_http_service, "/styles.css",
+                     &styles_css_gz_resource_detail);
+
 ////////////////// Color Wheel svg //////////////////
 // This is an image to be displayed in the browser.
 
-static const uint8_t color_wheel_png_gz[] = {
-	#include "color_wheel.svg.gz.inc"
+static const uint8_t color_circle_gz[] = {
+	#include "Color_circle.svg.gz.inc"
 };
 
-struct http_resource_detail_static color_wheel_png_gz_resource_detail = {
+struct http_resource_detail_static color_circle_gz_resource_detail = {
     .common = {
         .type = HTTP_RESOURCE_TYPE_STATIC,
         .bitmask_of_supported_http_methods = BIT(HTTP_GET),
         .content_encoding = "gzip",
 		.content_type = "image/svg+xml",
     },
-    .static_data = color_wheel_png_gz,
-    .static_data_len = sizeof(color_wheel_png_gz),
+    .static_data = color_circle_gz,
+    .static_data_len = sizeof(color_circle_gz),
 };
 
-HTTP_RESOURCE_DEFINE(color_wheel_png_gz_resource, test_http_service, "/color_wheel.svg",
-		     &color_wheel_png_gz_resource_detail);
+HTTP_RESOURCE_DEFINE(color_circle_gz_resource, test_http_service, "/Color_circle.svg",
+		     &color_circle_gz_resource_detail);
 
 ////////////////// Logo Nordic svg //////////////////
 // This is an image to be displayed in the browser.
@@ -94,6 +116,56 @@ struct http_resource_detail_static logo_Nordic_svg_gz_resource_detail = {
 
 HTTP_RESOURCE_DEFINE(logo_Nordic_svg_gz_resource, test_http_service,
 		     "/Logo_Flat_RGB_Horizontal.svg", &logo_Nordic_svg_gz_resource_detail);
+
+////////////////// 3D Model //////////////////
+// This is an 3D model to be displayed in the browser.
+
+static const uint8_t model_glb_gz[] = {
+// #include "Duck.glb.gz.inc"
+#include "thingy91x.glb.gz.inc"
+};
+
+struct http_resource_detail_static model_glb_gz_resource_detail = {
+    .common =
+        {
+            .type = HTTP_RESOURCE_TYPE_STATIC,
+            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
+            .content_encoding = "gzip",
+            .content_type = "model/gltf-binary",
+        },
+    .static_data = model_glb_gz,
+    .static_data_len = sizeof(model_glb_gz),
+};
+
+HTTP_RESOURCE_DEFINE(model_glb_gz_resource, test_http_service, "/thingy91x.glb",
+                     &model_glb_gz_resource_detail);
+
+////////////////// Recalibrate Gyro Button //////////////////
+// This is a button on the webpage that allows the user to recalibrate the gyroscope.
+// It is a dynamic resource that accepts POST requests with JSON payloads.
+
+static uint8_t recalibrate_gyro_buf[256]; // Buffer to store the JSON payload
+
+static struct http_resource_detail_dynamic recalibrate_gyro_resource_detail = {
+    .common =
+        {
+            .type = HTTP_RESOURCE_TYPE_DYNAMIC,
+            .bitmask_of_supported_http_methods = BIT(HTTP_POST),
+        },
+    .cb = NULL, // This is set by the http_resources_set_recalibrate_gyro_handler function to allow
+            // callback function to be defined in main.c
+    .data_buffer = recalibrate_gyro_buf,
+    .data_buffer_len = sizeof(recalibrate_gyro_buf),
+    .user_data = NULL,
+};
+
+HTTP_RESOURCE_DEFINE(recalibrate_gyro_resource, test_http_service, "/recalibrate_gyro",
+                     &recalibrate_gyro_resource_detail);
+
+void http_resources_set_recalibrate_gyro_handler(http_resource_dynamic_cb_t handler)
+{
+    recalibrate_gyro_resource_detail.cb = handler;
+}
 
 ////////////////// LED Resource //////////////////
 // This is the resource that is used to control the LEDs on the Thingy:91x.
