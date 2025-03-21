@@ -37,12 +37,6 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 #define HTTPS_PORT "443"
 
 #define POST_URL "/v1/location/wifi"
-#define JSON_BODY                                                                                  \
-	"{\"accessPoints\":[{\"macAddress\": \"C8:7F:54:4C:21:B4\",\"signalStrength\": -49}, "     \
-	"{\"macAddress\": \"4C:E1:75:01:15:6F\",\"signalStrength\": -51}]}"
-
-// JSON body length
-static const size_t json_body_length = sizeof(JSON_BODY) - 1;
 
 // Define a buffer large enough to hold headers and body
 #define SEND_BUF_SIZE 1024
@@ -179,9 +173,18 @@ static void send_http_request(void)
 	char send_buf[SEND_BUF_SIZE];
 
     
-// #define JSON_BODY                                                                                  \
-// "{\"accessPoints\":[{\"macAddress\": \"C8:7F:54:4C:21:B4\",\"signalStrength\": -49}, {\"macAddress\": \"4C:E1:75:01:15:6F\",\"signalStrength\": -51}]}"
     extern char nrfcloud_api_str[CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR * 65];
+
+
+	// Remove trailing comma of the api string
+	nrfcloud_api_str[strlen(nrfcloud_api_str) - 1] = '\0';
+
+	// Combine the JSON body string
+	char json_body[1024];
+	int json_body_len = snprintf(json_body, sizeof(json_body), "{\"accessPoints\":[%s]}", nrfcloud_api_str);
+
+	// LOG_WRN("JSON body length: %d", json_body_len);
+
 
 	// Formatted HTTP headers and body
 	int header_len = snprintf(send_buf, sizeof(send_buf),
@@ -191,9 +194,9 @@ static void send_http_request(void)
 				  "Content-Type: application/json\r\n"
 				  "Content-Length: %zu\r\n"
 				  "Connection: close\r\n\r\n"
-                  "{\"accessPoints\":[%s]}",
-				  POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN,
-				  (sizeof(nrfcloud_api_str) + 17), nrfcloud_api_str);
+				  "%s",
+				  POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN, json_body_len, json_body);
+
 
 	// Check for truncation
 	if (header_len < 0 || header_len >= sizeof(send_buf)) {

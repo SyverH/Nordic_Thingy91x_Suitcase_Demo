@@ -97,15 +97,6 @@ static void handle_wifi_scan_result(struct net_mgmt_event_callback *cb)
         // LOG_WRN("nrfcloud_api_str: %s", nrfcloud_api_str);
     }
 
-    // remove last comma
-    if(scan_result == CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR) {
-        nrfcloud_api_str[strlen(nrfcloud_api_str) - 1] = '\0';
-        LOG_ERR("nrfcloud_api_str: %s", nrfcloud_api_str);
-    }
-
-
-    
-
 }
 
 static void handle_wifi_scan_done(struct net_mgmt_event_callback *cb)
