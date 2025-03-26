@@ -142,10 +142,15 @@ static void send_http_request(void)
 	// 	return;
 	// }
 
-    for(int i = 0; i < 5; i++) {
+    // NOTE: Multiple DNS attempts inorder to deal with unstable network such as mobile hotspots
+    for(int i = 0; i < CONFIG_DNS_ATTEMPTS; i++) {
         err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
         if (err) {
-            LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+            if (i == CONFIG_DNS_ATTEMPTS - 1) {
+                LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+                return;
+            }
+            LOG_WRN("getaddrinfo() failed, errno %d, err %d\n", errno, err);
         } else {
             break;
         }
@@ -564,10 +569,7 @@ static int location_handler(struct http_client_ctx *client, enum http_data_statu
 			     uint8_t *buffer, size_t len, void *user_data)
 {
 	static bool response_sent;
-
     extern char location_buf[256];
-
-	LOG_WRN("Location handler status %d, response_sent %d", status, response_sent);
 
 	switch (status) {
 	case HTTP_SERVER_DATA_ABORTED: {

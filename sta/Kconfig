@@ -88,6 +88,12 @@ config HTTPS_HOSTNAME
 	string "HTTPS hostname"
 	default "example.com"
 
+config DNS_ATTEMPTS
+    int "Number of DNS attempts"
+    default 5
+    help
+      Number of DNS attempts to resolve the hostname.
+
 endmenu
 
 menu "Nordic Scan sample"
