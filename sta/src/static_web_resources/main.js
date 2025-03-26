@@ -4,17 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-var initialCoordinates = [59.920983, 10.689235];
+var initialCoordinates = [16, 14];
 var initialUncertainty = 0;
 
-var map = L.map('map').setView(initialCoordinates, 15);
-var marker = L.marker(initialCoordinates).addTo(map);
+var map = L.map('map').setView(initialCoordinates, 1);
+var marker = L.marker(initialCoordinates);
 var uncertaintyCircle = L.circle(initialCoordinates, initialUncertainty, {
     color: 'blue',
     fillColor: '#blue',
     fillOpacity: 0.5,
     radius: initialUncertainty
-}).addTo(map);
+});
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -25,16 +25,12 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 function updateMarker(lat, lon, uncertainty, zoom) {
     var newCoordinates = [lat, lon];
 
-    marker.setLatLng(newCoordinates);
+    marker.setLatLng(newCoordinates).addTo(map);
     uncertaintyCircle.setLatLng(newCoordinates);
-    uncertaintyCircle.setRadius(uncertainty);
+    uncertaintyCircle.setRadius(uncertainty).addTo(map);
     map.setView(newCoordinates, zoom);
 }
 
-// After 5 seconds, update the marker position using remove and reset
-// setTimeout(() => {
-//     updateMarker(63.421642, 10.437172, 10, 15);;
-// }, 5000);
 
 document.getElementById('color_picker').addEventListener('input', function () {
     const selectedColor = this.value;
@@ -494,6 +490,27 @@ async function postRgbLed(color) {
     }
 }
 
+function fetchLocation() {
+    fetch("/location")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Response status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            updateMarker(data.lat, data.lon, data.uncertainty, 15);
+        })
+        .catch(error => {
+            console.error(error.message);
+            setTimeout(() => {
+                fetchLocation();
+            }, 5000);
+        });
+
+}
+
 // Wait for the site to load before loading the 3D model
 window.addEventListener('load', function () {
     var modelViewer = document.getElementById('transform');
@@ -511,20 +528,7 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     //     postRgbLed(color);
     // });
 
-    fetch("/location")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Response status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log(data);
-            updateMarker(data.lat, data.lon, data.uncertainty, 15);
-        })
-        .catch(error => {
-            console.error(error.message);
-        });
+    fetchLocation();
 
     document.getElementById('reset-orientation').addEventListener('click', function () {
         roll = 0.0;

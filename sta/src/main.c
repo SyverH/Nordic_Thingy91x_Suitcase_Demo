@@ -553,11 +553,13 @@ static void wifi_connected_handler(void)
 	// Print Thread name
 	LOG_WRN("Thread name: %s\n", k_thread_name_get(k_current_get()));
 
-	// LOG_INF("Sending HTTP request");
-	send_http_request();
 
 	LOG_INF("HTTP server staring");
 	http_server_start();
+
+    
+	// LOG_INF("Sending HTTP request");
+	send_http_request();
 
 	int ret = pwm_set_color(0, 255, 0);
 	if (ret) {
