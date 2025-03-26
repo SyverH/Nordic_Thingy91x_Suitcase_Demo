@@ -3,6 +3,8 @@ This project showcases how to host a responsive and interactive web page using t
 
 To view the webpage, connect the device to a network and open its predefined hostname (e.g., `<Your Net Hostname>.local`) or assigned IP address in any web browser.
 
+The website is active when the front-facing LED turns green.
+
 ## Capabilities
 The demo showcases following features:
 - **Sensor data visualization:** Graphs of device sensor data
