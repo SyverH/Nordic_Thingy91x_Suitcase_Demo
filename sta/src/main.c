@@ -136,11 +136,20 @@ static void send_http_request(void)
 
 	LOG_INF("Looking up %s\n", CONFIG_HTTPS_HOSTNAME);
 
-	err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
-	if (err) {
-		LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
-		return;
-	}
+	// err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
+	// if (err) {
+	// 	LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+	// 	return;
+	// }
+
+    for(int i = 0; i < 5; i++) {
+        err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
+        if (err) {
+            LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+        } else {
+            break;
+        }
+    }
 
 	inet_ntop(res->ai_family, &((struct sockaddr_in *)(res->ai_addr))->sin_addr, peer_addr,
 		  INET6_ADDRSTRLEN);
