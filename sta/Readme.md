@@ -8,7 +8,7 @@ The demo showcases following features:
 - **Sensor data visualization:** Graphs of device sensor data
 - **Remote control of device:** Control of device LEDs
 - **Wi-Fi SSID Locationing:** WiFi SSID Locationing with nRF Cloud REST API
-- **Orientation calculation on device:** Responsive preview of device orientation with a dynamic 3D visualization
+- **Orientation calculation on device:** Preview of device orientation with a dynamic 3D visualization
 
 
 
@@ -26,20 +26,26 @@ Optional:
 ## Configuration 
 ### User Configurations
 The settings for this demo are defined in the `prj.conf` file.
+The JWT token is stored in the git-hidden file JWT_token.h to avoid accidental publication.
 
-To customize the setup:
-- Enter your Wi-Fi credentials (SSID and Password)
-- Define the hostname for easy connection in the browser
-- Add your JWT (JSON Web Token) for authentication
+To necessary settings to run the demo:
+- Enter your Wi-Fi credentials (SSID and Password) in `prj.conf`
+- For easy connection in the browser, define the hostname in `prj.conf`
+- Add your JWT (JSON Web Token) for authentication in `JWT_token.h`
 
 Network connections can also be managed dynamically using **net shell**.
+
+**prj.conf changes**
 ```Cmake
 CONFIG_WIFI_CREDENTIALS_STATIC_SSID="YourSSID"
 CONFIG_WIFI_CREDENTIALS_STATIC_PASSWORD="YourPassword"
 
 CONFIG_NET_HOSTNAME="thingy91x"
+```
 
-CONFIG_JWT="Your JWT here"
+**JWT_token.h changes**
+```c
+#define AUTH_TOKEN "Your Token"
 ```
 
 ### Generating and Updating Network Certificates
@@ -66,7 +72,7 @@ west flash --erase
 - [ ] implement wifi provisioning
 - [ ] implement secure web server
 - [ ] add option to run as a softAP
-- [ ] implement wifi positioning
+- [x] implement wifi positioning
 - [ ] implement bmm350 magnetometer (waiting for driver in zephyr)
 - [x] implement mDNS
 - [x] implement rgb led control
