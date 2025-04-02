@@ -3,6 +3,12 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(SENSORS, CONFIG_SENSORS_LOG_LEVEL);
 
+void sensor_gas_thread();
+
+K_THREAD_STACK_DEFINE(gas_stack_area, 1024);
+struct k_thread gas_thread_data;
+k_tid_t gas_thread_id;
+
 const struct device *dev_bmi270 = DEVICE_DT_GET(DT_ALIAS(accel0));
 const struct device *dev_adxl367 = DEVICE_DT_GET(DT_ALIAS(accel1));
 const struct device *dev_bme680 = DEVICE_DT_GET(DT_ALIAS(env0));
@@ -78,7 +84,7 @@ int sensors_init(void)
 	struct sensor_value ful_scale, sampling_freq, oversampling;
 	ful_scale.val1 = 2; /* G */
 	ful_scale.val2 = 0;
-	sampling_freq.val1 = 100; /* Hz */
+	sampling_freq.val1 = 200; /* Hz */
 	sampling_freq.val2 = 0;
 	oversampling.val1 = 1; /* Normal mode */
 	oversampling.val2 = 0;
@@ -92,9 +98,9 @@ int sensors_init(void)
 	sensor_attr_set(dev_bmi270, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_SAMPLING_FREQUENCY,
 			&sampling_freq);
 
-	ful_scale.val1 = 500; /* dps */
+	ful_scale.val1 = 1000; /* dps */
 	ful_scale.val2 = 0;
-	sampling_freq.val1 = 100; /* Hz. */
+	sampling_freq.val1 = 200; /* Hz. */
 	sampling_freq.val2 = 0;
 	oversampling.val1 = 2; /* Normal mode */
 	oversampling.val2 = 0;
@@ -143,7 +149,57 @@ int sensors_init(void)
 	// }
 	// LOG_INF("Device %s is ready", dev_bmm350->name);
 
+    // Start the gas sensor thread
+    
+    
+	gas_thread_id =
+    k_thread_create(&gas_thread_data, gas_stack_area,
+            K_THREAD_STACK_SIZEOF(gas_stack_area), sensor_gas_thread,
+            NULL, NULL, NULL, 7, 0, K_NO_WAIT);
+
 	return 0;
+}
+
+struct sensor_value temp, press, hum, gas;
+// Thread to measure the gas sensor continuously and update a global variable as the gas measurement are slow
+void sensor_gas_thread(){
+    int ret;
+    while(1) {
+        //////////////////////BME680//////////////////////
+        LOG_DBG("BME680");
+        ret = sensor_sample_fetch(dev_bme680);
+        if (ret) {
+            LOG_ERR("sensor_sample_fetch failed ret %d", ret);
+            return;
+        }
+
+        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+        if (ret) {
+            LOG_ERR("sensor_channel_get failed ret %d", ret);
+            return;
+        }
+
+        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_PRESS, &press);
+        if (ret) {
+            LOG_ERR("sensor_channel_get failed ret %d", ret);
+            return;
+        }
+
+        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_HUMIDITY, &hum);
+        if (ret) {
+            LOG_ERR("sensor_channel_get failed ret %d", ret);
+            return;
+        }
+
+        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_GAS_RES, &gas);
+        if (ret) {
+            LOG_ERR("sensor_channel_get failed ret %d", ret);
+            return;
+        }
+
+        k_sleep(K_MSEC(250));
+    }
+
 }
 
 /**
@@ -173,7 +229,7 @@ int sensor_measure(double *data)
 	int ret;
 	struct sensor_value accel0[3], gyr[3];
 	struct sensor_value accel1[3];
-	struct sensor_value temp, press, hum, gas;
+	// struct sensor_value temp, press, hum, gas;
 	// struct sensor_value mag[3]; // NOTE: The bmm350 device have no zephyr drivers yet
 
 	//////////////////////BMI270//////////////////////
@@ -223,37 +279,41 @@ int sensor_measure(double *data)
 		return -1;
 	}
 
-	//////////////////////BME680//////////////////////
-	LOG_DBG("BME680");
-	ret = sensor_sample_fetch(dev_bme680);
-	if (ret) {
-		LOG_ERR("sensor_sample_fetch failed ret %d", ret);
-		return -1;
-	}
+	// //////////////////////BME680//////////////////////
+	// LOG_DBG("BME680");
+	// ret = sensor_sample_fetch(dev_bme680);
+	// if (ret) {
+	// 	LOG_ERR("sensor_sample_fetch failed ret %d", ret);
+	// 	return -1;
+	// }
 
-	ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-	if (ret) {
-		LOG_ERR("sensor_channel_get failed ret %d", ret);
-		return -1;
-	}
+	// ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+	// if (ret) {
+	// 	LOG_ERR("sensor_channel_get failed ret %d", ret);
+	// 	return -1;
+	// }
 
-	ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_PRESS, &press);
-	if (ret) {
-		LOG_ERR("sensor_channel_get failed ret %d", ret);
-		return -1;
-	}
+	// ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_PRESS, &press);
+	// if (ret) {
+	// 	LOG_ERR("sensor_channel_get failed ret %d", ret);
+	// 	return -1;
+	// }
 
-	ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_HUMIDITY, &hum);
-	if (ret) {
-		LOG_ERR("sensor_channel_get failed ret %d", ret);
-		return -1;
-	}
+	// ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_HUMIDITY, &hum);
+	// if (ret) {
+	// 	LOG_ERR("sensor_channel_get failed ret %d", ret);
+	// 	return -1;
+	// }
 
-	ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_GAS_RES, &gas);
-	if (ret) {
-		LOG_ERR("sensor_channel_get failed ret %d", ret);
-		return -1;
-	}
+	// ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_GAS_RES, &gas);
+	// if (ret) {
+	// 	LOG_ERR("sensor_channel_get failed ret %d", ret);
+	// 	return -1;
+	// }
+
+    // current_time = k_cycle_get_32();
+    // diff = current_time - measure_start_time;
+    // LOG_INF("BME680: %d us", k_cyc_to_us_floor32(diff));
 
 	// NOTE: The bmm350 device have no zephyr drivers yet
 	////////////////////BMM350//////////////////////
@@ -318,16 +378,16 @@ int sensors_get_json(char *buf, size_t len)
 	int ret;
 
 	const char *sensors_json_template = "{"
-					    "\"timestamp\":%.03f,"
-					    "\"bmi270_ax\":%.03f,"
-					    "\"bmi270_ay\":%.03f,"
-					    "\"bmi270_az\":%.03f,"
-					    "\"bmi270_gx\":%.03f,"
-					    "\"bmi270_gy\":%.03f,"
-					    "\"bmi270_gz\":%.03f,"
-					    "\"adxl_ax\":%.03f,"
-					    "\"adxl_ay\":%.03f,"
-					    "\"adxl_az\":%.03f,"
+					    "\"timestamp\":%.06f,"
+					    "\"bmi270_ax\":%.06f,"
+					    "\"bmi270_ay\":%.06f,"
+					    "\"bmi270_az\":%.06f,"
+					    "\"bmi270_gx\":%.06f,"
+					    "\"bmi270_gy\":%.06f,"
+					    "\"bmi270_gz\":%.06f,"
+					    "\"adxl_ax\":%.06f,"
+					    "\"adxl_ay\":%.06f,"
+					    "\"adxl_az\":%.06f,"
 					    "\"bme680_temperature\":%.03f,"
 					    "\"bme680_pressure\":%.03f,"
 					    "\"bme680_humidity\":%.03f,"

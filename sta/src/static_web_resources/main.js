@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+//////////////////////////////////////////////////////////////////
+// map
+//////////////////////////////////////////////////////////////////
 var initialCoordinates = [16, 14];
 var initialUncertainty = 0;
 
@@ -397,27 +400,32 @@ function updatePlots(data) {
 }
 
 function setSensorData(json_data, sensor_name) {
-    document.getElementById(sensor_name).innerHTML = json_data[sensor_name];
+    // document.getElementById(sensor_name).innerHTML = json_data[sensor_name];
+    document.getElementById(sensor_name).innerHTML = json_data[sensor_name].toFixed(3);
 }
 
 class MovingAverageFilter {
-    constructor(windowSize, threshold) {
+    constructor(windowSize) {
         this.windowSize = windowSize;
-        this.threshold = threshold;
         this.values = [];
         this.sum = 0;
     }
 
-    filter(value) {
-        if (Math.abs(value) < this.threshold) {
-            this.values.push(value);
-            this.sum += value;
+    add(value) {
+        this.values.push(value);
+        this.sum += value;
 
-            if (this.values.length > this.windowSize) {
-                this.sum -= this.values.shift();
-            }
+        if (this.values.length > this.windowSize) {
+            this.sum -= this.values.shift();
         }
-        return this.sum / this.values.length;
+    }
+
+    getAverage() {
+        let result = this.sum / this.values.length;
+        if (isNaN(result)) {
+            return 0;
+        }
+        return result;
     }
 }
 
@@ -430,6 +438,8 @@ let old_time = 0;
 let roll = 0.0;
 let pitch = 0.0;
 let yaw = 0.0;
+
+let alpha = 0.9;
 
 function updateOrientation(data) {
 
@@ -444,17 +454,94 @@ function updateOrientation(data) {
     let gy = parseFloat(data.bmi270_gy);
     let gz = parseFloat(data.bmi270_gz);
 
-    const dcOffsetGx = maFilterGx.filter(gx);
-    const dcOffsetGy = maFilterGy.filter(gy);
-    const dcOffsetGz = maFilterGz.filter(gz);
+    // Gyro offset compensation
+    if((Math.abs(gx) < 0.01) && (Math.abs(gy) < 0.01) && (Math.abs(gz) < 0.01)) {
+        maFilterGx.add(gx);
+        maFilterGy.add(gy);
+        maFilterGz.add(gz);
+    }
 
-    gx -= dcOffsetGx;
-    gy -= dcOffsetGy;
-    gz -= dcOffsetGz;
-
+    gx -= maFilterGx.getAverage();
+    gy -= maFilterGy.getAverage();
+    gz -= maFilterGz.getAverage();
+    
+    // Gyro integration
     roll += gx * delta_time * 180 / Math.PI;
-    pitch += gy * delta_time * 180 / Math.PI;
+    pitch -= gy * delta_time * 180 / Math.PI;
     yaw += gz * delta_time * 180 / Math.PI;
+
+    let ax = parseFloat(data.bmi270_ax);
+    let ay = parseFloat(data.bmi270_ay);
+    let az = parseFloat(data.bmi270_az);
+
+    // Angles from accelerometer
+    let gravity = Math.sqrt(ax * ax + ay * ay + az * az);
+    let roll_acc = Math.atan2(ay, az) * 180 / Math.PI;
+    let pitch_acc = Math.asin(ax / gravity) * 180 / Math.PI;
+
+    // Correcting the angles from the accelerometer to the same range as the gyro angles
+    if (pitch > 90){
+        pitch_acc = 90 + (90 - pitch_acc);
+        roll_acc += 180;
+    }
+    if (pitch < -90){
+        pitch_acc = -90 - (90 + pitch_acc);
+        roll_acc += 180;
+    }
+
+    if (roll_acc > 180){
+        roll_acc = roll_acc - 360;
+    }
+    if (roll_acc < -180){
+        roll_acc = roll_acc + 360;
+    }
+
+    // Limit the angles to one full rotation
+    if(pitch > 180){
+        pitch = pitch - 360;
+    }
+    if(pitch < -180){
+        pitch = pitch + 360;
+    }
+    if (roll > 180){
+        roll = roll - 360;
+    }
+    if (roll < -180){
+        roll = roll + 360;
+    }
+    if (yaw > 180){
+        yaw = yaw - 360;
+    }
+    if (yaw < -180){
+        yaw = yaw + 360;
+    }
+
+
+    // Complementary filter
+    // Gate from unstable position (|pitch| ~ 90)
+    if (Math.abs(pitch) > 80 && Math.abs(pitch) < 100) {
+        console.log("Gating");
+        // NOTE: at +/- 90 degrees pitch ax and ay are ~ 0, so the roll from the accelerometer is not reliable
+        // To avoid this, we use only the gyro roll when the pitch is close to 90
+    }
+    else if (Math.abs(roll) > 175) {
+        // NOTE: gyro roll and acc roll can flip at slightly different angles, messing up the complementary filter if not properly gated
+        // To avoid this, we use only the gyro roll when the pitch is close to 180
+    }
+    else {
+        roll = alpha * roll + (1 - alpha) * roll_acc;
+    }
+
+    // Gate from flipping point (|pitch| ~ 180)
+    if (Math.abs(pitch) > 175) {
+        // NOTE: gyro pitch and acc pitch can flip at slightly different angles, messing up the complementary filter if not properly gated
+        // To avoid this, we use only the gyro pitch when the pitch is close to 180
+    } 
+    else {
+        pitch = alpha * pitch + (1 - alpha) * pitch_acc;
+    }
+
+    // TODO: yaw is not drift compensated as magnetometer is needed for this. Due to this yaw will misalign with fast movements
 
     plotOrientation(roll, pitch, yaw);
 
@@ -468,14 +555,10 @@ function plotOrientation(roll, pitch, yaw) {
     modelViewerTransform.orientation = `${pitch}deg ${roll}deg ${yaw}deg`;
 }
 
-async function postRgbLed(color) {
-    // let r = parseInt(hex_color.slice(1, 3), 16);
-    // let g = parseInt(hex_color.slice(3, 5), 16);
-    // let b = parseInt(hex_color.slice(5, 7), 16);
-
-    let r = color[0];
-    let g = color[1];
-    let b = color[2];
+async function postRgbLed(hex_color) {
+    let r = parseInt(hex_color.slice(1, 3), 16);
+    let g = parseInt(hex_color.slice(3, 5), 16);
+    let b = parseInt(hex_color.slice(5, 7), 16);
 
     try {
         const payload = JSON.stringify({ "r": r, "g": g, "b": b });
