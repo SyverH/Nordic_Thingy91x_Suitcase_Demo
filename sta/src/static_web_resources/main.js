@@ -1,9 +1,3 @@
-/*
- * Copyright (c) 2024, Witekio
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 //////////////////////////////////////////////////////////////////
 // map
 //////////////////////////////////////////////////////////////////
@@ -153,40 +147,40 @@ let gyro0_chart = new Highcharts.Chart({
 });
 
 // NOTE: bmm350 is not plotted as it has no drivers in zephyr yet
-// let mag0_chart = new Highcharts.Chart({
-//     chart: {
-//         renderTo: 'chart_mag0'
-//     },
-//     title: {
-//         text: 'Magnetometer'
-//     },
-//     series: [{
-//         name: 'X',
-//         color: 'red',
-//         data: [],
-//         marker: { enabled: false }
-//     }, {
-//         name: 'Y',
-//         color: 'green',
-//         data: [],
-//         marker: { enabled: false }
-//     }, {
-//         name: 'Z',
-//         color: 'blue',
-//         data: [],
-//         marker: { enabled: false }
-//     }],
-//     xAxis: {
-//         title: {
-//             text: 'Seconds'
-//         }
-//     },
-//     yAxis: {
-//         title: {
-//             text: 'Magnetic field (uT)'
-//         }
-//     }
-// });
+let mag0_chart = new Highcharts.Chart({
+    chart: {
+        renderTo: 'chart_mag0'
+    },
+    title: {
+        text: 'Magnetometer'
+    },
+    series: [{
+        name: 'X',
+        color: 'red',
+        data: [],
+        marker: { enabled: false }
+    }, {
+        name: 'Y',
+        color: 'green',
+        data: [],
+        marker: { enabled: false }
+    }, {
+        name: 'Z',
+        color: 'blue',
+        data: [],
+        marker: { enabled: false }
+    }],
+    xAxis: {
+        title: {
+            text: 'Seconds'
+        }
+    },
+    yAxis: {
+        title: {
+            text: 'Magnetic field (uT)'
+        }
+    }
+});
 
 let temp_chart = new Highcharts.Chart({
     chart: {
@@ -350,24 +344,24 @@ function updatePlots(data) {
     }
 
     //NOTE: bmm350 is not plotted as it has no drivers in zephyr yet
-    // y = parseFloat(data.bmm350_magn_x);
-    // if (mag0_chart.series[0].data.length > 100) {
-    //     mag0_chart.series[0].addPoint([x, y], true, true, false);
-    // } else {
-    //     mag0_chart.series[0].addPoint([x, y], true, false, false);
-    // }
-    // y = parseFloat(data.bmm350_magn_y);
-    // if (mag0_chart.series[1].data.length > 100) {
-    //     mag0_chart.series[1].addPoint([x, y], true, true, false);
-    // } else {
-    //     mag0_chart.series[1].addPoint([x, y], true, false, false);
-    // }
-    // y = parseFloat(data.bmm350_magn_z);
-    // if (mag0_chart.series[2].data.length > 100) {
-    //     mag0_chart.series[2].addPoint([x, y], true, true, false);
-    // } else {
-    //     mag0_chart.series[2].addPoint([x, y], true, false, false);
-    // }
+    y = parseFloat(data.bmm350_magn_x);
+    if (mag0_chart.series[0].data.length > 100) {
+        mag0_chart.series[0].addPoint([x, y], true, true, false);
+    } else {
+        mag0_chart.series[0].addPoint([x, y], true, false, false);
+    }
+    y = parseFloat(data.bmm350_magn_y);
+    if (mag0_chart.series[1].data.length > 100) {
+        mag0_chart.series[1].addPoint([x, y], true, true, false);
+    } else {
+        mag0_chart.series[1].addPoint([x, y], true, false, false);
+    }
+    y = parseFloat(data.bmm350_magn_z);
+    if (mag0_chart.series[2].data.length > 100) {
+        mag0_chart.series[2].addPoint([x, y], true, true, false);
+    } else {
+        mag0_chart.series[2].addPoint([x, y], true, false, false);
+    }
 
     y = parseFloat(data.bme680_temperature);
     if (temp_chart.series[0].data.length > 1000) {
@@ -430,9 +424,9 @@ class MovingAverageFilter {
 }
 
 const windowSize = 100; // Adjust the window size as needed
-const maFilterGx = new MovingAverageFilter(windowSize, 0.01);
-const maFilterGy = new MovingAverageFilter(windowSize, 0.01);
-const maFilterGz = new MovingAverageFilter(windowSize, 0.01);
+const maFilterGx = new MovingAverageFilter(windowSize);
+const maFilterGy = new MovingAverageFilter(windowSize);
+const maFilterGz = new MovingAverageFilter(windowSize);
 
 let old_time = 0;
 let orientationQuat = { w: 1, x: 0, y: 0, z: 0 };
@@ -458,6 +452,19 @@ function normalizeQuaternion(q) {
     };
 }
 
+// Normalize a vector
+function vectorNormalize(v) {
+    let norm = 0;
+    for (let i = 0; i < v.length; i++) {
+        norm += v[i] * v[i];
+    }
+    norm = Math.sqrt(norm);
+    for (let i = 0; i < v.length; i++) {
+        v[i] = v[i] / norm;
+    }
+    return v;
+}
+
 // Multiply two quaternions
 function multiplyQuaternions(q1, q2) {
     return {
@@ -481,6 +488,11 @@ function toDeltaQuaternion(gyroX, gyroY, gyroZ, deltaTime) {
         y: Math.cos(halfDeltaX) * Math.sin(halfDeltaY) * Math.cos(halfDeltaZ) + Math.sin(halfDeltaX) * Math.cos(halfDeltaY) * Math.sin(halfDeltaZ),
         z: Math.cos(halfDeltaX) * Math.cos(halfDeltaY) * Math.sin(halfDeltaZ) - Math.sin(halfDeltaX) * Math.sin(halfDeltaY) * Math.cos(halfDeltaZ)
     });
+}
+
+// Quaternion conjugate
+function conjugateQuaternion(q) {
+    return { w: q.w, x: -q.x, y: -q.y, z: -q.z };
 }
 
 // Convert a quaternion to intrinsic Roll (Z), Pitch (X), Yaw (Y) Euler angles
@@ -519,7 +531,15 @@ function eulerToQuaternion(roll, pitch, yaw) {
     });
 }
 
-function rollPitchQuatFromAcc(accelX, accelY, accelZ) {
+let magnReference = { x: 0, y: 0, z: 0 };
+
+function FQAOrientation(accelX, accelY, accelZ, magnX, magnY, magnZ) {
+
+    if (magnReference.x == 0 && magnReference.y == 0 && magnReference.z == 0) {
+        magnReference.x = magnX;
+        magnReference.y = magnY;
+        magnReference.z = magnZ;
+    }
 
     // Normalize the accelerometer data
     const norm = Math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
@@ -527,7 +547,7 @@ function rollPitchQuatFromAcc(accelX, accelY, accelZ) {
     accelY /= norm;
     accelZ /= norm;
 
-    accelZ = -accelZ; 
+    accelZ = -accelZ;
 
     // Pitch quaternion
     const s_theta = Math.min(Math.max(accelX, -1), 1);
@@ -550,7 +570,7 @@ function rollPitchQuatFromAcc(accelX, accelY, accelZ) {
     let c_phi = is_singular ? 0 : (-1 * accelZ / c_theta);
     c_phi = Math.min(Math.max(c_phi, -1), 1);
     let sign_s_phi = Math.sign(s_phi);
-    if(c_phi == -1.0 && s_phi == 0.0) {
+    if (c_phi == -1.0 && s_phi == 0.0) {
         sign_s_phi = 1.0;
     }
     const s_phi_half = sign_s_phi * Math.sqrt((1 - c_phi) / 2);
@@ -565,9 +585,74 @@ function rollPitchQuatFromAcc(accelX, accelY, accelZ) {
     rollQuat = normalizeQuaternion(rollQuat);
 
     // Combine the pitch and roll quaternions
-    const combinedQuat = multiplyQuaternions(pitchQuat, rollQuat);
-    return normalizeQuaternion(combinedQuat);
+    const rollPitchQuat = multiplyQuaternions(pitchQuat, rollQuat);
+
+    // Yaw quaternion from magnetometer
+
+    // Normalize the magnetometer data
+    let magnVector = {
+        x: magnX,
+        y: magnY,
+        z: magnZ
+    };
+    magnVector = vectorNormalize(magnVector);
+
+    let bodyMagnQuat = {    // q_bm
+        w: 0,
+        x: magnVector.x,
+        y: magnVector.y,
+        z: magnVector.z
+    };
+
+    // q_prod(q_e, q_prod(q_r, q_prod(q_bm, q_prod(q_conj(q_r), q_conj(q_e))))
+    // bodyMagnQuat = q_bm
+    // pitchQuat    = q_e
+    // rollQuat     = q_r
+    // rollPitchQuat = q_e * q_r 
+
+    let earthMagnQuat = multiplyQuaternions(
+        pitchQuat, 
+        multiplyQuaternions(
+            rollQuat,
+            multiplyQuaternions(
+                bodyMagnQuat, 
+                multiplyQuaternions(
+                    conjugateQuaternion(rollQuat),
+                    conjugateQuaternion(pitchQuat)
+                                    ))));
+    earthMagnQuat = normalizeQuaternion(earthMagnQuat);
+
+    let Nx = magnReference.x;
+    let Ny = magnReference.y;
+    Nx = Nx / Math.sqrt(Nx * Nx + Ny * Ny);
+    Ny = Ny / Math.sqrt(Nx * Nx + Ny * Ny);
+
+    let Mx = earthMagnQuat.x / Math.sqrt(earthMagnQuat.x * earthMagnQuat.x + earthMagnQuat.y * earthMagnQuat.y);
+    let My = earthMagnQuat.y / Math.sqrt(earthMagnQuat.x * earthMagnQuat.x + earthMagnQuat.y * earthMagnQuat.y);
+
+    let c_psi = Nx * Mx + Ny * My;
+    let s_psi = -Nx * My + Ny * Mx;
+    c_psi = Math.min(Math.max(c_psi, -1), 1);   // Clamping for numerical stability
+
+    let s_psi_half = Math.sign(s_psi) * Math.sqrt((1 - c_psi) / 2);
+    let c_psi_half = Math.sqrt((1 + c_psi) / 2);
+
+    let yawQuat = {
+        w: c_psi_half,
+        x: 0,
+        y: 0,
+        z: s_psi_half
+    };
+
+    yawQuat = normalizeQuaternion(yawQuat);
+
+    // Combine the yaw quaternion with the previous product
+    const combinedQuat = multiplyQuaternions(yawQuat, rollPitchQuat);
+    const normalizedQuat = normalizeQuaternion(combinedQuat);
+    return normalizedQuat;
+
 }
+
 
 function updateOrientation(data) {
     let time = parseFloat(data.timestamp);
@@ -585,8 +670,12 @@ function updateOrientation(data) {
     let ay = parseFloat(data.bmi270_ay);
     let az = parseFloat(data.bmi270_az);
 
+    let mx = parseFloat(data.bmm350_magn_x);
+    let my = parseFloat(data.bmm350_magn_y);
+    let mz = parseFloat(data.bmm350_magn_z);
+
     // Gyro offset compensation
-    if((Math.abs(gx) < 0.01) && (Math.abs(gy) < 0.01) && (Math.abs(gz) < 0.01)) {
+    if ((Math.abs(gx) < 0.01) && (Math.abs(gy) < 0.01) && (Math.abs(gz) < 0.01)) {
         maFilterGx.add(gx);
         maFilterGy.add(gy);
         maFilterGz.add(gz);
@@ -600,29 +689,24 @@ function updateOrientation(data) {
     orientationQuat = multiplyQuaternions(orientationQuat, deltaQuaternion);
     orientationQuat = normalizeQuaternion(orientationQuat);
 
-    accQuat = rollPitchQuatFromAcc(ax, ay, az);
+    // accQuat = rollPitchQuatFromAcc(ax, ay, az);
+    fqaQuat = FQAOrientation(ax, ay, az, mx, my, mz);
 
-    // console.log("accQuat: " + accQuat.w + " " + accQuat.x + " " + accQuat.y + " " + accQuat.z);
-    // console.log("orientationQuat: " + orientationQuat.w + " " + orientationQuat.x + " " + orientationQuat.y + " " + orientationQuat.z);
-
-    // // Complementary filter
-    // const alpha = 0.8;
-    // orientationQuat.w = alpha * orientationQuat.w + (1 - alpha) * accQuat.w;
-    // orientationQuat.x = alpha * orientationQuat.x + (1 - alpha) * accQuat.x;
-    // orientationQuat.y = alpha * orientationQuat.y + (1 - alpha) * accQuat.y;
-    // orientationQuat.z = alpha * orientationQuat.z + (1 - alpha) * accQuat.z;
-    // orientationQuat = normalizeQuaternion(orientationQuat);
-
+    // Complementary filter
     let euler = quaternionToEuler(orientationQuat);
-    const accEuler = quaternionToEuler(accQuat);
+    const FQAEuler = quaternionToEuler(fqaQuat);
 
-    console.log("euler:" + euler.roll + " " + euler.pitch + " " + euler.yaw);
-    console.log("accEuler:" + accEuler.roll + " " + accEuler.pitch + " " + accEuler.yaw);
+    // console.log("euler:" + euler.roll + " " + euler.pitch + " " + euler.yaw);
+    // console.log("FQAEuler:" + FQAEuler.roll + " " + FQAEuler.pitch + " " + FQAEuler.yaw);
 
     // complementary filter
     const alpha = 0.8;
-    euler.roll = alpha * euler.roll + (1 - alpha) * accEuler.roll;
-    euler.pitch = alpha * euler.pitch + (1 - alpha) * accEuler.pitch;
+    euler.roll = alpha * euler.roll + (1 - alpha) * FQAEuler.roll;
+    euler.pitch = alpha * euler.pitch + (1 - alpha) * FQAEuler.pitch;
+
+    // NOTE: for yaw from magnetometer to be reliable, the magnetometer should be calibrated per device
+    //          As this is not done, the yaw from the magnetometer is not used
+    // euler.yaw = alpha * euler.yaw + (1 - alpha) * FQAEuler.yaw;
 
     orientationQuat = eulerToQuaternion(euler.roll, euler.pitch, euler.yaw);
 
@@ -660,8 +744,8 @@ async function postRgbLed(hex_color) {
     }
 }
 
-const fetchAttempts = 0;
-const maxAttempts = 5;
+let fetchAttempts = 0;
+const maxAttempts = 10;
 const fetchInterval = 5000; // 5 seconds
 
 function fetchLocation() {
@@ -679,6 +763,7 @@ function fetchLocation() {
         .catch(error => {
             console.error(error.message);
             if (fetchAttempts < maxAttempts) {
+                fetchAttempts++;
                 setTimeout(() => {
                     fetchLocation();
                 }, fetchInterval);
@@ -695,23 +780,14 @@ window.addEventListener('load', function () {
 
 window.addEventListener("DOMContentLoaded", (ev) => {
 
-    // document.querySelector('.color-picker-container img').addEventListener('click', function () {
-    //     document.getElementById('color_picker').click();
-    // });
-
-    // document.getElementById('color_picker').addEventListener('input', function (event) {
-    //     let color = event.target.value;
-    //     postRgbLed(color);
-    // });
-
     fetchLocation();
 
-    document.getElementById('reset-orientation').addEventListener('click', function () {
-        roll = 0.0;
-        pitch = 0.0;
-        yaw = 0.0;
-        plotOrientation(roll, pitch, yaw);
-    });
+    // document.getElementById('reset-orientation').addEventListener('click', function () {
+    //     roll = 0.0;
+    //     pitch = 0.0;
+    //     yaw = 0.0;
+    //     plotOrientation(roll, pitch, yaw);
+    // });
 
     /* Setup websocket for handling network stats */
     const ws = new WebSocket("/");
@@ -724,7 +800,7 @@ window.addEventListener("DOMContentLoaded", (ev) => {
 
         const data = JSON.parse(event.data);
 
-        
+
         //NOTE: The accelerometer ADXL367 is not plotted in the web interface as this is the same data as the BMI270
         // setSensorData(data, "adxl_ax");
         // setSensorData(data, "adxl_ay");
@@ -744,15 +820,15 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         setSensorData(data, "bmi270_az");
 
         //NOTE: bmm350 is not plotted as it has no drivers in zephyr yet
-        // setSensorData(data, "bmm350_magn_x");
-        // setSensorData(data, "bmm350_magn_y");
-        // setSensorData(data, "bmm350_magn_z");
+        setSensorData(data, "bmm350_magn_x");
+        setSensorData(data, "bmm350_magn_y");
+        setSensorData(data, "bmm350_magn_z");
 
         updatePlots(data);
         updateOrientation(data);
-    
+
     }
-    
+
     window.addEventListener('beforeunload', function () {
         ws.close();
     });

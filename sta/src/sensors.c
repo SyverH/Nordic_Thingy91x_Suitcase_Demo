@@ -12,8 +12,7 @@ k_tid_t gas_thread_id;
 const struct device *dev_bmi270 = DEVICE_DT_GET(DT_ALIAS(accel0));
 const struct device *dev_adxl367 = DEVICE_DT_GET(DT_ALIAS(accel1));
 const struct device *dev_bme680 = DEVICE_DT_GET(DT_ALIAS(env0));
-// const struct device *dev_bmm350 = DEVICE_DT_GET(DT_ALIAS(mag0)); // NOTE: The bmm350 device have
-// no zephyr drivers yet
+const struct device *dev_bmm350 = DEVICE_DT_GET(DT_ALIAS(mag0));
 
 /**
  * @brief Rotate a measurement around an axis.
@@ -141,13 +140,12 @@ int sensors_init(void)
 	}
 	LOG_INF("Device %s is ready", dev_bme680->name);
 
-	// NOTE: The bmm350 device have no zephyr drivers yet
 	//////////////////////BMM350//////////////////////
-	// if(!device_is_ready(dev_bmm350)) {
-	//     LOG_ERR("Device %s is not ready", dev_bmm350->name);
-	//     return -1;
-	// }
-	// LOG_INF("Device %s is ready", dev_bmm350->name);
+	if(!device_is_ready(dev_bmm350)) {
+	    LOG_ERR("Device %s is not ready", dev_bmm350->name);
+	    return -1;
+	}
+	LOG_INF("Device %s is ready", dev_bmm350->name);
 
     // Start the gas sensor thread
     
@@ -230,7 +228,7 @@ int sensor_measure(double *data)
 	struct sensor_value accel0[3], gyr[3];
 	struct sensor_value accel1[3];
 	// struct sensor_value temp, press, hum, gas;
-	// struct sensor_value mag[3]; // NOTE: The bmm350 device have no zephyr drivers yet
+	struct sensor_value mag[3]; // NOTE: The bmm350 device have no zephyr drivers yet
 
 	//////////////////////BMI270//////////////////////
 	LOG_DBG("BMI270");
@@ -317,18 +315,30 @@ int sensor_measure(double *data)
 
 	// NOTE: The bmm350 device have no zephyr drivers yet
 	////////////////////BMM350//////////////////////
-	// LOG_DBG("BMM350");
-	// ret = sensor_sample_fetch(dev_bmm350);
-	// if(ret) {
-	//     LOG_ERR("sensor_sample_fetch failed ret %d", ret);
-	//     return -1;
-	// }
+	LOG_DBG("BMM350");
+	ret = sensor_sample_fetch(dev_bmm350);
+	if(ret) {
+	    LOG_ERR("sensor_sample_fetch failed ret %d", ret);
+	    return -1;
+	}
 
-	// ret = sensor_channel_get(dev_bmm350, SENSOR_CHAN_MAGN_XYZ, mag);
-	// if(ret) {
-	//     LOG_ERR("sensor_channel_get failed ret %d", ret);
-	//     return -1;
-	// }
+	ret = sensor_channel_get(dev_bmm350, SENSOR_CHAN_MAGN_XYZ, mag);
+	if(ret) {
+	    LOG_ERR("sensor_channel_get failed ret %d", ret);
+	    return -1;
+	}
+
+    ret = rotate_measurement(mag, 180, 0);
+    if (ret) {
+        LOG_ERR("rotate_measurement failed ret %d", ret);
+        return -1;
+    }
+
+    ret = rotate_measurement(mag, -90, 2);
+    if (ret) {
+        LOG_ERR("rotate_measurement failed ret %d", ret);
+        return -1;
+    }
 
 	LOG_DBG("Sensor data fetched");
 	float32_t runtime = (float32_t)k_cycle_get_32() / (float32_t)sys_clock_hw_cycles_per_sec();
@@ -351,12 +361,12 @@ int sensor_measure(double *data)
 	data[11] = sensor_value_to_double(&press);
 	data[12] = sensor_value_to_double(&hum);
 	data[13] = sensor_value_to_double(&gas);
-	// data[14] = sensor_value_to_double(&mag[0]);
-	// data[15] = sensor_value_to_double(&mag[1]);
-	// data[16] = sensor_value_to_double(&mag[2]);
-	data[14] = 0.0;
-	data[15] = 0.0;
-	data[16] = 0.0;
+	data[14] = sensor_value_to_double(&mag[0]);
+	data[15] = sensor_value_to_double(&mag[1]);
+	data[16] = sensor_value_to_double(&mag[2]);
+	// data[14] = 0.0;
+	// data[15] = 0.0;
+	// data[16] = 0.0;
 
 	return 0;
 }
