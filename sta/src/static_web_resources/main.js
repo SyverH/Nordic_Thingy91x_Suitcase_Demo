@@ -556,12 +556,15 @@ function plotOrientation(roll, pitch, yaw) {
 }
 
 async function postRgbLed(hex_color) {
-    let r = parseInt(hex_color.slice(1, 3), 16);
-    let g = parseInt(hex_color.slice(3, 5), 16);
-    let b = parseInt(hex_color.slice(5, 7), 16);
+
+    let r = parseInt(hex_color[0]);
+    let g = parseInt(hex_color[1]);
+    let b = parseInt(hex_color[2]);
 
     try {
         const payload = JSON.stringify({ "r": r, "g": g, "b": b });
+
+        // console.log(payload);
 
         const response = await fetch("/led", { method: "POST", body: payload });
         if (!response.ok) {
@@ -682,7 +685,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const pixel = ctx.getImageData(x, y, 1, 1).data;
         const rgbColor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-        console.log(rgbColor);
+        // console.log(rgbColor);
 
         postRgbLed(pixel);
     });
