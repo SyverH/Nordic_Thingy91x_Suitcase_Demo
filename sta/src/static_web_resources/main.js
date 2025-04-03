@@ -427,6 +427,9 @@ const windowSize = 100; // Adjust the window size as needed
 const maFilterGx = new MovingAverageFilter(windowSize);
 const maFilterGy = new MovingAverageFilter(windowSize);
 const maFilterGz = new MovingAverageFilter(windowSize);
+const maFilterMx = new MovingAverageFilter(10);
+const maFilterMy = new MovingAverageFilter(10);
+const maFilterMz = new MovingAverageFilter(10);
 
 let old_time = 0;
 let orientationQuat = { w: 1, x: 0, y: 0, z: 0 };
@@ -799,7 +802,6 @@ window.addEventListener("DOMContentLoaded", (ev) => {
         // console.log("Received data");
 
         const data = JSON.parse(event.data);
-
 
         //NOTE: The accelerometer ADXL367 is not plotted in the web interface as this is the same data as the BMI270
         // setSensorData(data, "adxl_ax");
