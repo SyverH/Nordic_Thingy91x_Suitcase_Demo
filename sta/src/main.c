@@ -356,30 +356,50 @@ static const struct pwm_dt_spec red_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0)
 static const struct pwm_dt_spec green_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
 static const struct pwm_dt_spec blue_pwm_led = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2));
 
+uint8_t apply_gamma(uint8_t value, float gamma)
+{
+	/* (value/255)^gamma * 255 */
+	return (uint8_t)(pow(value / 255.0, gamma) * 255);
+}
+
 int pwm_set_color(int red, int green, int blue)
 {
 	int ret;
 
-	LOG_DBG("PWM_Color: Red: %d, Green: %d, Blue: %d \n", red, green, blue);
+	/* Parameters to adjust intensity of each color */
+	float red_gamma = 2.2;
+	float green_gamma = 2.2;
+	float blue_gamma = 2.2;
+
+	float red_intensity_scale = 1.0;
+	float green_intensity_scale = 1.0;
+	float blue_intensity_scale = 0.8;
+
+	// LOG_DBG("PWM_Color: Red: %d, Green: %d, Blue: %d \n", red, green, blue);
+
+	// Apply gamma correction
+	int corrected_red = apply_gamma(red * red_intensity_scale, red_gamma);
+	int corrected_green = apply_gamma(green * green_intensity_scale, green_gamma);
+	int corrected_blue = apply_gamma(blue * blue_intensity_scale, blue_gamma);
 
 	// uint32_t period = red_pwm_led.period;
-	red = (red * red_pwm_led.period) / 255;
-	green = (green * green_pwm_led.period) / 255;
-	blue = (blue * blue_pwm_led.period) / 255;
+	int pwm_red = (corrected_red * red_pwm_led.period) / 255;
+	int pwm_green = (corrected_green * green_pwm_led.period) / 255;
+	int pwm_blue = (corrected_blue * blue_pwm_led.period) / 255;
 
-	ret = pwm_set_pulse_dt(&red_pwm_led, red);
+	ret = pwm_set_pulse_dt(&red_pwm_led, pwm_red);
 	if (ret != 0) {
 		LOG_ERR("Error %d: red write failed\n", ret);
 		return ret;
 	}
 
-	ret = pwm_set_pulse_dt(&green_pwm_led, green);
+	ret = pwm_set_pulse_dt(&green_pwm_led, pwm_green);
 	if (ret != 0) {
 		LOG_ERR("Error %d: green write failed\n", ret);
 		return ret;
 	}
 
-	ret = pwm_set_pulse_dt(&blue_pwm_led, blue);
+	ret = pwm_set_pulse_dt(&blue_pwm_led, pwm_blue);
 	if (ret != 0) {
 		LOG_ERR("Error %d: blue write failed\n", ret);
 		return ret;
