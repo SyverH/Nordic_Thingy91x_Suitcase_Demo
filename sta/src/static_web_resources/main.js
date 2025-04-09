@@ -147,7 +147,7 @@ let gyro0_chart = new Highcharts.Chart({
     },
     yAxis: {
         title: {
-            text: 'Angular velocity (deg/s)'
+            text: 'Angular velocity (rad/s)'
         }
     }
 });
@@ -442,6 +442,11 @@ function radToDeg(radians) {
     return radians * 180 / Math.PI;
 }
 
+// Convert degrees to radians
+function degToRad(degrees) {
+    return degrees * Math.PI / 180;
+}
+
 // Normalize a quaternion
 function normalizeQuaternion(q) {
     const length = Math.sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
@@ -493,6 +498,77 @@ function quaternionToEuler(q) {
     };
 }
 
+// Construct a quaternion from Euler angles
+function eulerToQuaternion(roll, pitch, yaw) {
+    const halfRoll = degToRad(roll) / 2;
+    const halfPitch = degToRad(pitch) / 2;
+    const halfYaw = degToRad(yaw) / 2;
+
+    const sinRoll = Math.sin(halfRoll);
+    const cosRoll = Math.cos(halfRoll);
+    const sinPitch = Math.sin(halfPitch);
+    const cosPitch = Math.cos(halfPitch);
+    const sinYaw = Math.sin(halfYaw);
+    const cosYaw = Math.cos(halfYaw);
+
+    return normalizeQuaternion({
+        w: cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw,
+        x: sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw,
+        y: cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw,
+        z: cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw
+    });
+}
+
+function rollPitchQuatFromAcc(accelX, accelY, accelZ) {
+
+    // Normalize the accelerometer data
+    const norm = Math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+    accelX /= norm;
+    accelY /= norm;
+    accelZ /= norm;
+
+    accelZ = -accelZ; 
+
+    // Pitch quaternion
+    const s_theta = Math.min(Math.max(accelX, -1), 1);
+    const c_theta = Math.sqrt(1 - s_theta * s_theta);
+    const s_theta_half = Math.sign(s_theta) * Math.sqrt((1 - c_theta) / 2);
+    const c_theta_half = Math.sqrt((1 + c_theta) / 2);
+
+    let pitchQuat = {
+        w: c_theta_half,
+        x: 0,
+        y: s_theta_half,
+        z: 0
+    };
+
+    pitchQuat = normalizeQuaternion(pitchQuat);
+
+    // Roll quaternion
+    const is_singular = (c_theta == 0);
+    const s_phi = is_singular ? 0 : (-1 * accelY / c_theta);
+    let c_phi = is_singular ? 0 : (-1 * accelZ / c_theta);
+    c_phi = Math.min(Math.max(c_phi, -1), 1);
+    let sign_s_phi = Math.sign(s_phi);
+    if(c_phi == -1.0 && s_phi == 0.0) {
+        sign_s_phi = 1.0;
+    }
+    const s_phi_half = sign_s_phi * Math.sqrt((1 - c_phi) / 2);
+    const c_phi_half = Math.sqrt((1 + c_phi) / 2);
+
+    let rollQuat = {
+        w: c_phi_half,
+        x: s_phi_half,
+        y: 0,
+        z: 0
+    };
+    rollQuat = normalizeQuaternion(rollQuat);
+
+    // Combine the pitch and roll quaternions
+    const combinedQuat = multiplyQuaternions(pitchQuat, rollQuat);
+    return normalizeQuaternion(combinedQuat);
+}
+
 function updateOrientation(data) {
     let time = parseFloat(data.timestamp);
     if (old_time == 0) {
@@ -504,6 +580,10 @@ function updateOrientation(data) {
     let gx = parseFloat(data.bmi270_gx);
     let gy = parseFloat(data.bmi270_gy);
     let gz = parseFloat(data.bmi270_gz);
+
+    let ax = parseFloat(data.bmi270_ax);
+    let ay = parseFloat(data.bmi270_ay);
+    let az = parseFloat(data.bmi270_az);
 
     // Gyro offset compensation
     if((Math.abs(gx) < 0.01) && (Math.abs(gy) < 0.01) && (Math.abs(gz) < 0.01)) {
@@ -517,11 +597,35 @@ function updateOrientation(data) {
     gz -= maFilterGz.getAverage();
 
     const deltaQuaternion = toDeltaQuaternion(-gx, -gy, gz, delta_time);
-
     orientationQuat = multiplyQuaternions(orientationQuat, deltaQuaternion);
-
     orientationQuat = normalizeQuaternion(orientationQuat);
-    const euler = quaternionToEuler(orientationQuat);
+
+    accQuat = rollPitchQuatFromAcc(ax, ay, az);
+
+    // console.log("accQuat: " + accQuat.w + " " + accQuat.x + " " + accQuat.y + " " + accQuat.z);
+    // console.log("orientationQuat: " + orientationQuat.w + " " + orientationQuat.x + " " + orientationQuat.y + " " + orientationQuat.z);
+
+    // // Complementary filter
+    // const alpha = 0.8;
+    // orientationQuat.w = alpha * orientationQuat.w + (1 - alpha) * accQuat.w;
+    // orientationQuat.x = alpha * orientationQuat.x + (1 - alpha) * accQuat.x;
+    // orientationQuat.y = alpha * orientationQuat.y + (1 - alpha) * accQuat.y;
+    // orientationQuat.z = alpha * orientationQuat.z + (1 - alpha) * accQuat.z;
+    // orientationQuat = normalizeQuaternion(orientationQuat);
+
+    let euler = quaternionToEuler(orientationQuat);
+    const accEuler = quaternionToEuler(accQuat);
+
+    console.log("euler:" + euler.roll + " " + euler.pitch + " " + euler.yaw);
+    console.log("accEuler:" + accEuler.roll + " " + accEuler.pitch + " " + accEuler.yaw);
+
+    // complementary filter
+    const alpha = 0.8;
+    euler.roll = alpha * euler.roll + (1 - alpha) * accEuler.roll;
+    euler.pitch = alpha * euler.pitch + (1 - alpha) * accEuler.pitch;
+
+    orientationQuat = eulerToQuaternion(euler.roll, euler.pitch, euler.yaw);
+
 
     plotOrientation(euler.roll, euler.pitch, euler.yaw);
 
