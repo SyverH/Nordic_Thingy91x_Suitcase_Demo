@@ -147,7 +147,7 @@ let gyro0_chart = new Highcharts.Chart({
     },
     yAxis: {
         title: {
-            text: 'Angular velocity (deg/s)'
+            text: 'Angular velocity (rad/s)'
         }
     }
 });
