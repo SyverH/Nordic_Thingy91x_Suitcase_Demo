@@ -253,13 +253,13 @@ int sensor_measure(double *data)
 	}
 
 	// Rotate the BMI270 data to match the orientation of the thingy
-	ret = rotate_measurement(accel0, -90, 2);
+	ret = rotate_measurement(accel0, 180, 2);
 	if (ret) {
 		LOG_ERR("rotate_measurement failed ret %d", ret);
 		return -1;
 	}
 
-	ret = rotate_measurement(gyr, -90, 2);
+	ret = rotate_measurement(gyr, 180, 2);
 	if (ret) {
 		LOG_ERR("rotate_measurement failed ret %d", ret);
 		return -1;
