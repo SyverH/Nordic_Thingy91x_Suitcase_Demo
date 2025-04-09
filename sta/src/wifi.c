@@ -38,7 +38,7 @@ static uint32_t scan_result;
 char nrfcloud_api_str[CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR * 65] = {0};
 
 K_SEM_DEFINE(scan_sem, 0, 1);
-#define SCAN_TIMEOUT_MS 10000
+#define SCAN_TIMEOUT_MS 100000
 
 int wifi_channel_to_freq(int channel)
 {

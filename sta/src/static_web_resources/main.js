@@ -435,14 +435,65 @@ const maFilterGy = new MovingAverageFilter(windowSize, 0.01);
 const maFilterGz = new MovingAverageFilter(windowSize, 0.01);
 
 let old_time = 0;
-let roll = 0.0;
-let pitch = 0.0;
-let yaw = 0.0;
+let orientationQuat = { w: 1, x: 0, y: 0, z: 0 };
 
-let alpha = 0.9;
+// Convert radians to degrees
+function radToDeg(radians) {
+    return radians * 180 / Math.PI;
+}
+
+// Normalize a quaternion
+function normalizeQuaternion(q) {
+    const length = Math.sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+    return {
+        w: q.w / length,
+        x: q.x / length,
+        y: q.y / length,
+        z: q.z / length
+    };
+}
+
+// Multiply two quaternions
+function multiplyQuaternions(q1, q2) {
+    return {
+        w: q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z,
+        x: q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
+        y: q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x,
+        z: q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w
+    };
+}
+
+// Convert gyroscope delta (deg/s) to a quaternion
+function toDeltaQuaternion(gyroX, gyroY, gyroZ, deltaTime) {
+
+    const halfDeltaX = gyroX * deltaTime / 2;
+    const halfDeltaY = gyroY * deltaTime / 2;
+    const halfDeltaZ = gyroZ * deltaTime / 2;
+
+    return normalizeQuaternion({
+        w: Math.cos(halfDeltaX) * Math.cos(halfDeltaY) * Math.cos(halfDeltaZ) + Math.sin(halfDeltaX) * Math.sin(halfDeltaY) * Math.sin(halfDeltaZ),
+        x: Math.sin(halfDeltaX) * Math.cos(halfDeltaY) * Math.cos(halfDeltaZ) - Math.cos(halfDeltaX) * Math.sin(halfDeltaY) * Math.sin(halfDeltaZ),
+        y: Math.cos(halfDeltaX) * Math.sin(halfDeltaY) * Math.cos(halfDeltaZ) + Math.sin(halfDeltaX) * Math.cos(halfDeltaY) * Math.sin(halfDeltaZ),
+        z: Math.cos(halfDeltaX) * Math.cos(halfDeltaY) * Math.sin(halfDeltaZ) - Math.sin(halfDeltaX) * Math.sin(halfDeltaY) * Math.cos(halfDeltaZ)
+    });
+}
+
+// Convert a quaternion to intrinsic Roll (Z), Pitch (X), Yaw (Y) Euler angles
+function quaternionToEuler(q) {
+    const sinPitch = -2 * (q.x * q.z - q.w * q.y);
+    const pitch = Math.asin(Math.min(Math.max(sinPitch, -1), 1)); // Clamping for numerical stability
+
+    const yaw = Math.atan2(2 * (q.x * q.y + q.w * q.z), q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z);
+    const roll = Math.atan2(2 * (q.y * q.z + q.w * q.x), q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z);
+
+    return {
+        roll: radToDeg(roll),
+        pitch: radToDeg(pitch),
+        yaw: radToDeg(yaw)
+    };
+}
 
 function updateOrientation(data) {
-
     let time = parseFloat(data.timestamp);
     if (old_time == 0) {
         old_time = time;
@@ -464,95 +515,24 @@ function updateOrientation(data) {
     gx -= maFilterGx.getAverage();
     gy -= maFilterGy.getAverage();
     gz -= maFilterGz.getAverage();
-    
-    // Gyro integration
-    roll += gx * delta_time * 180 / Math.PI;
-    pitch -= gy * delta_time * 180 / Math.PI;
-    yaw += gz * delta_time * 180 / Math.PI;
 
-    let ax = parseFloat(data.bmi270_ax);
-    let ay = parseFloat(data.bmi270_ay);
-    let az = parseFloat(data.bmi270_az);
+    const deltaQuaternion = toDeltaQuaternion(-gx, -gy, gz, delta_time);
 
-    // Angles from accelerometer
-    let gravity = Math.sqrt(ax * ax + ay * ay + az * az);
-    let roll_acc = Math.atan2(ay, az) * 180 / Math.PI;
-    let pitch_acc = Math.asin(ax / gravity) * 180 / Math.PI;
+    orientationQuat = multiplyQuaternions(orientationQuat, deltaQuaternion);
 
-    // Correcting the angles from the accelerometer to the same range as the gyro angles
-    if (pitch > 90){
-        pitch_acc = 90 + (90 - pitch_acc);
-        roll_acc += 180;
-    }
-    if (pitch < -90){
-        pitch_acc = -90 - (90 + pitch_acc);
-        roll_acc += 180;
-    }
+    orientationQuat = normalizeQuaternion(orientationQuat);
+    const euler = quaternionToEuler(orientationQuat);
 
-    if (roll_acc > 180){
-        roll_acc = roll_acc - 360;
-    }
-    if (roll_acc < -180){
-        roll_acc = roll_acc + 360;
-    }
-
-    // Limit the angles to one full rotation
-    if(pitch > 180){
-        pitch = pitch - 360;
-    }
-    if(pitch < -180){
-        pitch = pitch + 360;
-    }
-    if (roll > 180){
-        roll = roll - 360;
-    }
-    if (roll < -180){
-        roll = roll + 360;
-    }
-    if (yaw > 180){
-        yaw = yaw - 360;
-    }
-    if (yaw < -180){
-        yaw = yaw + 360;
-    }
-
-
-    // Complementary filter
-    // Gate from unstable position (|pitch| ~ 90)
-    if (Math.abs(pitch) > 80 && Math.abs(pitch) < 100) {
-        console.log("Gating");
-        // NOTE: at +/- 90 degrees pitch ax and ay are ~ 0, so the roll from the accelerometer is not reliable
-        // To avoid this, we use only the gyro roll when the pitch is close to 90
-    }
-    else if (Math.abs(roll) > 175) {
-        // NOTE: gyro roll and acc roll can flip at slightly different angles, messing up the complementary filter if not properly gated
-        // To avoid this, we use only the gyro roll when the pitch is close to 180
-    }
-    else {
-        roll = alpha * roll + (1 - alpha) * roll_acc;
-    }
-
-    // Gate from flipping point (|pitch| ~ 180)
-    if (Math.abs(pitch) > 175) {
-        // NOTE: gyro pitch and acc pitch can flip at slightly different angles, messing up the complementary filter if not properly gated
-        // To avoid this, we use only the gyro pitch when the pitch is close to 180
-    } 
-    else {
-        pitch = alpha * pitch + (1 - alpha) * pitch_acc;
-    }
-
-    // TODO: yaw is not drift compensated as magnetometer is needed for this. Due to this yaw will misalign with fast movements
-
-    plotOrientation(roll, pitch, yaw);
+    plotOrientation(euler.roll, euler.pitch, euler.yaw);
 
 }
 
 function plotOrientation(roll, pitch, yaw) {
+
     // console.log("Roll: " + roll + " Pitch: " + pitch + " Yaw: " + yaw);
 
     const modelViewerTransform = document.querySelector("model-viewer#transform");
-
-    modelViewerTransform.orientation = `${pitch}deg ${roll}deg ${yaw}deg`;
+    modelViewerTransform.orientation = `${roll}deg ${pitch}deg ${yaw}deg`;
 }
 
 async function postRgbLed(hex_color) {
@@ -576,6 +556,10 @@ async function postRgbLed(hex_color) {
     }
 }
 
+const fetchAttempts = 0;
+const maxAttempts = 5;
+const fetchInterval = 5000; // 5 seconds
+
 function fetchLocation() {
     fetch("/location")
         .then(response => {
@@ -590,9 +574,11 @@ function fetchLocation() {
         })
         .catch(error => {
             console.error(error.message);
-            setTimeout(() => {
-                fetchLocation();
-            }, 5000);
+            if (fetchAttempts < maxAttempts) {
+                setTimeout(() => {
+                    fetchLocation();
+                }, fetchInterval);
+            }
         });
 
 }
