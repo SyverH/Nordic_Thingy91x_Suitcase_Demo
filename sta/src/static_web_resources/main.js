@@ -707,10 +707,7 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     fetchLocation();
 
     document.getElementById('reset-orientation').addEventListener('click', function () {
-        roll = 0.0;
-        pitch = 0.0;
-        yaw = 0.0;
-        plotOrientation(roll, pitch, yaw);
+        orientationQuat = { w: 1, x: 0, y: 0, z: 0 };
     });
 
     /* Setup websocket for handling network stats */
