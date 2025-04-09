@@ -557,11 +557,15 @@ static void wifi_connected_handler(void)
 	LOG_INF("HTTP server staring");
 	http_server_start();
 
-    
+    int ret = pwm_set_color(255, 255, 0);
+	if (ret) {
+		LOG_ERR("Failed to set LED color");
+	}
+
 	// LOG_INF("Sending HTTP request");
 	send_http_request();
 
-	int ret = pwm_set_color(0, 255, 0);
+	ret = pwm_set_color(0, 255, 0);
 	if (ret) {
 		LOG_ERR("Failed to set LED color");
 	}
