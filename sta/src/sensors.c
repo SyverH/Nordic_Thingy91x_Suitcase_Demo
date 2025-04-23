@@ -149,57 +149,56 @@ int sensors_init(void)
 	// }
 	// LOG_INF("Device %s is ready", dev_bmm350->name);
 
-    // Start the gas sensor thread
-    
-    
-	gas_thread_id =
-    k_thread_create(&gas_thread_data, gas_stack_area,
-            K_THREAD_STACK_SIZEOF(gas_stack_area), sensor_gas_thread,
-            NULL, NULL, NULL, 7, 0, K_NO_WAIT);
+	// Start the gas sensor thread
+
+	gas_thread_id = k_thread_create(&gas_thread_data, gas_stack_area,
+					K_THREAD_STACK_SIZEOF(gas_stack_area), sensor_gas_thread,
+					NULL, NULL, NULL, 7, 0, K_NO_WAIT);
 
 	return 0;
 }
 
 struct sensor_value temp, press, hum, gas;
-// Thread to measure the gas sensor continuously and update a global variable as the gas measurement are slow
-void sensor_gas_thread(){
-    int ret;
-    while(1) {
-        //////////////////////BME680//////////////////////
-        LOG_DBG("BME680");
-        ret = sensor_sample_fetch(dev_bme680);
-        if (ret) {
-            LOG_ERR("sensor_sample_fetch failed ret %d", ret);
-            return;
-        }
+// Thread to measure the gas sensor continuously and update a global variable as the gas measurement
+// are slow
+void sensor_gas_thread()
+{
+	int ret;
+	while (1) {
+		//////////////////////BME680//////////////////////
+		LOG_DBG("BME680");
+		ret = sensor_sample_fetch(dev_bme680);
+		if (ret) {
+			LOG_ERR("sensor_sample_fetch failed ret %d", ret);
+			return;
+		}
 
-        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-        if (ret) {
-            LOG_ERR("sensor_channel_get failed ret %d", ret);
-            return;
-        }
+		ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+		if (ret) {
+			LOG_ERR("sensor_channel_get failed ret %d", ret);
+			return;
+		}
 
-        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_PRESS, &press);
-        if (ret) {
-            LOG_ERR("sensor_channel_get failed ret %d", ret);
-            return;
-        }
+		ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_PRESS, &press);
+		if (ret) {
+			LOG_ERR("sensor_channel_get failed ret %d", ret);
+			return;
+		}
 
-        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_HUMIDITY, &hum);
-        if (ret) {
-            LOG_ERR("sensor_channel_get failed ret %d", ret);
-            return;
-        }
+		ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_HUMIDITY, &hum);
+		if (ret) {
+			LOG_ERR("sensor_channel_get failed ret %d", ret);
+			return;
+		}
 
-        ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_GAS_RES, &gas);
-        if (ret) {
-            LOG_ERR("sensor_channel_get failed ret %d", ret);
-            return;
-        }
+		ret = sensor_channel_get(dev_bme680, SENSOR_CHAN_GAS_RES, &gas);
+		if (ret) {
+			LOG_ERR("sensor_channel_get failed ret %d", ret);
+			return;
+		}
 
-        k_sleep(K_MSEC(250));
-    }
-
+		k_sleep(K_MSEC(250));
+	}
 }
 
 /**
@@ -311,9 +310,9 @@ int sensor_measure(double *data)
 	// 	return -1;
 	// }
 
-    // current_time = k_cycle_get_32();
-    // diff = current_time - measure_start_time;
-    // LOG_INF("BME680: %d us", k_cyc_to_us_floor32(diff));
+	// current_time = k_cycle_get_32();
+	// diff = current_time - measure_start_time;
+	// LOG_INF("BME680: %d us", k_cyc_to_us_floor32(diff));
 
 	// NOTE: The bmm350 device have no zephyr drivers yet
 	////////////////////BMM350//////////////////////
@@ -366,8 +365,8 @@ int sensor_measure(double *data)
  *      The JSON string will look like this:
  *      { "timestamp": 0.0, "bmi270_ax": 0.0, "bmi270_ay": 0.0, "bmi270_az": 0.0, "bmi270_gx": 0.0,
  *      "bmi270_gy": 0.0, "bmi270_gz": 0.0, "adxl_ax": 0.0, "adxl_ay": 0.0, "adxl_az": 0.0,
- *      "bme680_temperature": 0.0, "bme680_pressure": 0.0, "bme680_humidity": 0.0, "bme680_gas": 0.0,
- *      "bmm350_magn_x": 0.0, "bmm350_magn_y": 0.0, "bmm350_magn_z": 0.0 }
+ *      "bme680_temperature": 0.0, "bme680_pressure": 0.0, "bme680_humidity": 0.0, "bme680_gas":
+ * 0.0, "bmm350_magn_x": 0.0, "bmm350_magn_y": 0.0, "bmm350_magn_z": 0.0 }
  *
  * @param buf Pointer to the buffer
  * @param len Length of the buffer

@@ -60,36 +60,37 @@ static const uint8_t styles_css_gz[] = {
 };
 
 struct http_resource_detail_static styles_css_gz_resource_detail = {
-    .common =
-        {
-            .type = HTTP_RESOURCE_TYPE_STATIC,
-            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
-            .content_encoding = "gzip",
-            .content_type = "text/css",
-        },
-    .static_data = styles_css_gz,
-    .static_data_len = sizeof(styles_css_gz),
+	.common =
+		{
+			.type = HTTP_RESOURCE_TYPE_STATIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_GET),
+			.content_encoding = "gzip",
+			.content_type = "text/css",
+		},
+	.static_data = styles_css_gz,
+	.static_data_len = sizeof(styles_css_gz),
 };
 
 HTTP_RESOURCE_DEFINE(styles_css_gz_resource, test_http_service, "/styles.css",
-                     &styles_css_gz_resource_detail);
+		     &styles_css_gz_resource_detail);
 
 ////////////////// Color Wheel svg //////////////////
 // This is an image to be displayed in the browser.
 
 static const uint8_t color_circle_gz[] = {
-	#include "Color_circle.svg.gz.inc"
+#include "Color_circle.svg.gz.inc"
 };
 
 struct http_resource_detail_static color_circle_gz_resource_detail = {
-    .common = {
-        .type = HTTP_RESOURCE_TYPE_STATIC,
-        .bitmask_of_supported_http_methods = BIT(HTTP_GET),
-        .content_encoding = "gzip",
-		.content_type = "image/svg+xml",
-    },
-    .static_data = color_circle_gz,
-    .static_data_len = sizeof(color_circle_gz),
+	.common =
+		{
+			.type = HTTP_RESOURCE_TYPE_STATIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_GET),
+			.content_encoding = "gzip",
+			.content_type = "image/svg+xml",
+		},
+	.static_data = color_circle_gz,
+	.static_data_len = sizeof(color_circle_gz),
 };
 
 HTTP_RESOURCE_DEFINE(color_circle_gz_resource, test_http_service, "/Color_circle.svg",
@@ -126,19 +127,19 @@ static const uint8_t model_glb_gz[] = {
 };
 
 struct http_resource_detail_static model_glb_gz_resource_detail = {
-    .common =
-        {
-            .type = HTTP_RESOURCE_TYPE_STATIC,
-            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
-            .content_encoding = "gzip",
-            .content_type = "model/gltf-binary",
-        },
-    .static_data = model_glb_gz,
-    .static_data_len = sizeof(model_glb_gz),
+	.common =
+		{
+			.type = HTTP_RESOURCE_TYPE_STATIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_GET),
+			.content_encoding = "gzip",
+			.content_type = "model/gltf-binary",
+		},
+	.static_data = model_glb_gz,
+	.static_data_len = sizeof(model_glb_gz),
 };
 
 HTTP_RESOURCE_DEFINE(model_glb_gz_resource, test_http_service, "/thingy91x.glb",
-                     &model_glb_gz_resource_detail);
+		     &model_glb_gz_resource_detail);
 
 ////////////////// LED Resource //////////////////
 // This is the resource that is used to control the LEDs on the Thingy:91x.
@@ -199,33 +200,34 @@ void http_resources_get_ws_ctx(struct ws_sensors_ctx **ctx)
 	*ctx = sensors_ctx;
 }
 
-//////////////////////////////////////// Location Resource //////////////////////////////////////////
+//////////////////////////////////////// Location Resource
+/////////////////////////////////////////////
 // GET /location
 // This is a dynamic resource that returns the location of the device.
 
 uint8_t location_buf[256]; // Buffer to store the location
 
 static struct http_resource_detail_dynamic location_resource_detail = {
-    .common =
-        {
-            .type = HTTP_RESOURCE_TYPE_DYNAMIC,
-            .bitmask_of_supported_http_methods = BIT(HTTP_GET),
-        },
-    .cb = NULL, // This is set by the http_resources_set_location_handler function to allow callback
-            // function to be defined in main.c
-    .data_buffer = location_buf,
-    .data_buffer_len = sizeof(location_buf),
-    .user_data = NULL,
+	.common =
+		{
+			.type = HTTP_RESOURCE_TYPE_DYNAMIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_GET),
+		},
+	.cb = NULL, // This is set by the http_resources_set_location_handler function to allow
+		    // callback function to be defined in main.c
+	.data_buffer = location_buf,
+	.data_buffer_len = sizeof(location_buf),
+	.user_data = NULL,
 };
 
 HTTP_RESOURCE_DEFINE(location_resource, test_http_service, "/location", &location_resource_detail);
 
 void http_resources_set_location_handler(http_resource_dynamic_cb_t handler)
 {
-    location_resource_detail.cb = handler;
+	location_resource_detail.cb = handler;
 }
 
 void http_resources_set_location(const char *location)
 {
-    strncpy(location_buf, location, sizeof(location_buf));
+	strncpy(location_buf, location, sizeof(location_buf));
 }

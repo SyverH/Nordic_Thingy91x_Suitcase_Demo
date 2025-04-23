@@ -142,19 +142,19 @@ static void send_http_request(void)
 	// 	return;
 	// }
 
-    // NOTE: Multiple DNS attempts inorder to deal with unstable network such as mobile hotspots
-    for(int i = 0; i < CONFIG_DNS_ATTEMPTS; i++) {
-        err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
-        if (err) {
-            if (i == CONFIG_DNS_ATTEMPTS - 1) {
-                LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
-                return;
-            }
-            LOG_WRN("getaddrinfo() failed, errno %d, err %d\n", errno, err);
-        } else {
-            break;
-        }
-    }
+	// NOTE: Multiple DNS attempts inorder to deal with unstable network such as mobile hotspots
+	for (int i = 0; i < CONFIG_DNS_ATTEMPTS; i++) {
+		err = getaddrinfo(CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, &hints, &res);
+		if (err) {
+			if (i == CONFIG_DNS_ATTEMPTS - 1) {
+				LOG_ERR("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+				return;
+			}
+			LOG_WRN("getaddrinfo() failed, errno %d, err %d\n", errno, err);
+		} else {
+			break;
+		}
+	}
 
 	inet_ntop(res->ai_family, &((struct sockaddr_in *)(res->ai_addr))->sin_addr, peer_addr,
 		  INET6_ADDRSTRLEN);
@@ -186,19 +186,17 @@ static void send_http_request(void)
 
 	char send_buf[SEND_BUF_SIZE];
 
-    
-    extern char nrfcloud_api_str[CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR * 65];
-
+	extern char nrfcloud_api_str[CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR * 65];
 
 	// Remove trailing comma of the api string
 	nrfcloud_api_str[strlen(nrfcloud_api_str) - 1] = '\0';
 
 	// Combine the JSON body string
 	char json_body[1024];
-	int json_body_len = snprintf(json_body, sizeof(json_body), "{\"accessPoints\":[%s]}", nrfcloud_api_str);
+	int json_body_len =
+		snprintf(json_body, sizeof(json_body), "{\"accessPoints\":[%s]}", nrfcloud_api_str);
 
 	// LOG_WRN("JSON body length: %d", json_body_len);
-
 
 	// Formatted HTTP headers and body
 	int header_len = snprintf(send_buf, sizeof(send_buf),
@@ -209,8 +207,8 @@ static void send_http_request(void)
 				  "Content-Length: %zu\r\n"
 				  "Connection: close\r\n\r\n"
 				  "%s",
-				  POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN, json_body_len, json_body);
-
+				  POST_URL, CONFIG_HTTPS_HOSTNAME, HTTPS_PORT, AUTH_TOKEN,
+				  json_body_len, json_body);
 
 	// Check for truncation
 	if (header_len < 0 || header_len >= sizeof(send_buf)) {
@@ -573,11 +571,10 @@ static void wifi_connected_handler(void)
 	// Print Thread name
 	LOG_WRN("Thread name: %s\n", k_thread_name_get(k_current_get()));
 
-
 	LOG_INF("HTTP server staring");
 	http_server_start();
 
-    int ret = pwm_set_color(255, 255, 0);
+	int ret = pwm_set_color(255, 255, 0);
 	if (ret) {
 		LOG_ERR("Failed to set LED color");
 	}
@@ -592,10 +589,10 @@ static void wifi_connected_handler(void)
 }
 
 static int location_handler(struct http_client_ctx *client, enum http_data_status status,
-			     uint8_t *buffer, size_t len, void *user_data)
+			    uint8_t *buffer, size_t len, void *user_data)
 {
 	static bool response_sent;
-    extern char location_buf[256];
+	extern char location_buf[256];
 
 	switch (status) {
 	case HTTP_SERVER_DATA_ABORTED: {
@@ -674,7 +671,7 @@ int main(void)
 	http_resources_set_location_handler(location_handler);
 
 #ifdef CONFIG_SYS_HEAP_LISTENER
-		heap_listener_register(&system_heap_listener_alloc);
+	heap_listener_register(&system_heap_listener_alloc);
 	heap_listener_register(&system_heap_listener_free);
 #endif // CONFIG_SYS_HEAP_LISTENER
 
