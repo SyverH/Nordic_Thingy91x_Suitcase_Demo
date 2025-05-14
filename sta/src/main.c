@@ -38,6 +38,9 @@ LOG_MODULE_REGISTER(http_server, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define POST_URL "/v1/location/wifi"
 
+#include <zephyr/fs/fs.h>
+#include <zephyr/fs/littlefs.h>
+
 // Define a buffer large enough to hold headers and body
 #define SEND_BUF_SIZE 1024
 #define RECV_BUF_SIZE 2048
@@ -626,8 +629,50 @@ static int location_handler(struct http_client_ctx *client, enum http_data_statu
 	}
 }
 
+int lsdir(const char *path)
+{
+    struct fs_dir_t dirp;
+    struct fs_dirent entry;
+    int res;
+
+    fs_dir_t_init(&dirp);
+
+    res = fs_opendir(&dirp, path);
+    if (res) {
+    LOG_ERR("Error opening dir %s [%d]", path, res);
+    return res;
+    }
+
+    LOG_INF("Listing dir %s", path);
+    while (true) {
+        res = fs_readdir(&dirp, &entry);
+
+        if (res) {
+        LOG_ERR("Error reading dir %s [%d]", path, res);
+        break;
+        }
+
+        if (entry.name[0] == '\0') {
+            break;
+        }
+
+        if (entry.type == FS_DIR_ENTRY_DIR) {
+            LOG_INF("[DIR ] %s", entry.name);
+        } else {
+            LOG_INF("[FILE] %s (size = %zu)", entry.name, entry.size);
+        }
+    }
+
+    fs_closedir(&dirp);
+
+    return res;
+}
+
+FS_LITTLEFS_DECLARE_DEFAULT_CONFIG(ext_littlefs);
+
 int main(void)
 {
+    k_sleep(K_SECONDS(1));
 	int ret = 0;
 
 	// ret = dk_leds_init();
@@ -635,6 +680,24 @@ int main(void)
 	// 	LOG_ERR("Failed to initialize LEDs");
 	// 	return -1;
 	// }
+
+    struct fs_mount_t mp = {
+        .type = FS_LITTLEFS,
+        .fs_data = &ext_littlefs,
+        .storage_dev = (void *)FLASH_AREA_ID(lfs_partition),
+        .mnt_point = "/lfs1"
+    };
+
+    /* Mount the file system */
+    ret = fs_mount(&mp);
+    if (ret < 0) {
+        LOG_ERR("Error mounting LittleFS [%d]\n", ret);
+        return 0;
+    }
+
+    LOG_INF("LittleFS mounted successfully\n");
+
+    lsdir("/lfs1");
 
 	if (!pwm_is_ready_dt(&red_pwm_led) || !pwm_is_ready_dt(&green_pwm_led) ||
 	    !pwm_is_ready_dt(&blue_pwm_led)) {
