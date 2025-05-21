@@ -176,12 +176,15 @@ int cmd_wifi_status(void)
 		return -ENOEXEC;
 	}
 
-	LOG_INF("==================");
-	LOG_INF("State: %s", wifi_state_txt(status.state));
+	// LOG_INF("==================");
+	// LOG_INF("State: %s", wifi_state_txt(status.state));
 
 	if (status.state >= WIFI_STATE_ASSOCIATED) {
 		uint8_t mac_string_buf[sizeof("xx:xx:xx:xx:xx:xx")];
 
+
+        LOG_INF("==================");
+	    LOG_INF("State: %s", wifi_state_txt(status.state));
 		LOG_INF("Interface Mode: %s", wifi_mode_txt(status.iface_mode));
 		LOG_INF("Link Mode: %s", wifi_link_mode_txt(status.link_mode));
 		LOG_INF("SSID: %.32s", status.ssid);
