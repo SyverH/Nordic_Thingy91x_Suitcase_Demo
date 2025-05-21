@@ -25,10 +25,8 @@ foreach(web_resource
   index.html
   main.js
   styles.css
-#   color_wheel.svg
   Color_circle.svg
   Logo_Flat_RGB_Horizontal.svg
-#   Duck.glb
   thingy91x.glb
     )
   generate_inc_file_for_target(
@@ -53,4 +51,5 @@ target_sources(app PRIVATE
     src/sensors.c
     src/http_resources.c
     src/wifi.c
+    src/https_request.c
 )

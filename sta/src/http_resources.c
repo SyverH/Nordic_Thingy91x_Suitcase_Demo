@@ -74,7 +74,7 @@ struct http_resource_detail_static styles_css_gz_resource_detail = {
 HTTP_RESOURCE_DEFINE(styles_css_gz_resource, test_http_service, "/styles.css",
 		     &styles_css_gz_resource_detail);
 
-////////////////// Color Wheel svg //////////////////
+////////////////// Color circle svg //////////////////
 // This is an image to be displayed in the browser.
 
 static const uint8_t color_circle_gz[] = {
@@ -167,6 +167,31 @@ void http_resources_set_led_handler(http_resource_dynamic_cb_t handler)
 	led_resource_detail.cb = handler;
 }
 
+///////////////////// JWT Resource //////////////////
+// This is the resource that is used to get the JWT token from the server.
+// It is a dynamic resource that accepts POST requests with JSON payloads.
+
+static uint8_t jwt_buf[512]; // Buffer to store the JSON payload
+static struct http_resource_detail_dynamic jwt_resource_detail = {
+	.common =
+		{
+			.type = HTTP_RESOURCE_TYPE_DYNAMIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_POST),
+		},
+	.cb = NULL, // This is set by the http_resources_set_jwt_handler function to allow callback
+		    // function to be defined in main.c
+	.data_buffer = jwt_buf,
+	.data_buffer_len = sizeof(jwt_buf),
+	.user_data = NULL,
+};
+
+HTTP_RESOURCE_DEFINE(jwt_resource, test_http_service, "/jwt", &jwt_resource_detail);
+
+void http_resources_set_jwt_handler(http_resource_dynamic_cb_t handler)
+{
+	jwt_resource_detail.cb = handler;
+}
+
 ////////////////// WebSocket Resource //////////////////
 // This is the resource that is used to send sensor data over a WebSocket connection.
 
@@ -200,8 +225,7 @@ void http_resources_get_ws_ctx(struct ws_sensors_ctx **ctx)
 	*ctx = sensors_ctx;
 }
 
-//////////////////////////////////////// Location Resource
-/////////////////////////////////////////////
+////////////////// Location Resource //////////////////
 // GET /location
 // This is a dynamic resource that returns the location of the device.
 

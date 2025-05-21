@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2024, Witekio
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+* JavaScript code for the web interface
+* All functionality contained in one file to minimize number of connection contexts of the thingy
+*/
+
 
 //////////////////////////////////////////////////////////////////
-// map
+// INFO: Map functionality
 //////////////////////////////////////////////////////////////////
 var initialCoordinates = [16, 14];
 var initialUncertainty = 0;
@@ -42,7 +42,7 @@ document.getElementById('color_picker').addEventListener('input', function () {
 
 
 ////////////////////////////////////////////////////////////////
-// Setup the charts
+// Chart functionality
 ////////////////////////////////////////////////////////////////
 let accel0_chart = new Highcharts.Chart({
     chart: {
@@ -404,6 +404,10 @@ function setSensorData(json_data, sensor_name) {
     document.getElementById(sensor_name).innerHTML = json_data[sensor_name].toFixed(3);
 }
 
+////////////////////////////////////////////////////////////////
+// 3D Model
+////////////////////////////////////////////////////////////////
+
 class MovingAverageFilter {
     constructor(windowSize) {
         this.windowSize = windowSize;
@@ -616,14 +620,15 @@ function updateOrientation(data) {
     let euler = quaternionToEuler(orientationQuat);
     const accEuler = quaternionToEuler(accQuat);
 
-    console.log("euler:" + euler.roll + " " + euler.pitch + " " + euler.yaw);
-    console.log("accEuler:" + accEuler.roll + " " + accEuler.pitch + " " + accEuler.yaw);
+    // console.log("euler:" + euler.roll + " " + euler.pitch + " " + euler.yaw);
+    // console.log("accEuler:" + accEuler.roll + " " + accEuler.pitch + " " + accEuler.yaw);
 
     // complementary filter
     const alpha = 0.8;
     euler.roll = alpha * euler.roll + (1 - alpha) * accEuler.roll;
     euler.pitch = alpha * euler.pitch + (1 - alpha) * accEuler.pitch;
 
+    // Feedback after the complementary filter
     orientationQuat = eulerToQuaternion(euler.roll, euler.pitch, euler.yaw);
 
 
@@ -639,6 +644,15 @@ function plotOrientation(roll, pitch, yaw) {
     modelViewerTransform.orientation = `${roll}deg ${pitch}deg ${yaw}deg`;
 }
 
+// Wait for the site to load before loading the 3D model
+window.addEventListener('load', function () {
+    var modelViewer = document.getElementById('transform');
+    modelViewer.setAttribute('src', modelViewer.getAttribute('data-src'));
+});
+
+////////////////////////////////////////////////////////////////////////////
+// Function to post RGB LED data
+////////////////////////////////////////////////////////////////////////////
 async function postRgbLed(hex_color) {
 
     let r = parseInt(hex_color[0]);
@@ -660,11 +674,14 @@ async function postRgbLed(hex_color) {
     }
 }
 
-const fetchAttempts = 0;
-const maxAttempts = 5;
+////////////////////////////////////////////////////////////////////////////
+// Function to fetch the location
+////////////////////////////////////////////////////////////////////////////
+
 const fetchInterval = 5000; // 5 seconds
 
-function fetchLocation() {
+function fetchLocation(attempts_left) {
+    console.log(attempts_left);
     fetch("/location")
         .then(response => {
             if (!response.ok) {
@@ -673,43 +690,79 @@ function fetchLocation() {
             return response.json();
         })
         .then(data => {
+            // {lat: 16.0, lon: 14.0, uncertainty: 0.0}
+            // {message: "Location not available"}
+
             console.log(data);
-            updateMarker(data.lat, data.lon, data.uncertainty, 15);
+
+            if (data.message !== undefined) {
+                console.log("Location not available");
+                console.log(data.message);
+                document.getElementById("jwt-error").innerHTML = data.message;
+
+            } else if (data.lat !== undefined && data.lon !== undefined && data.uncertainty !== undefined) {
+                console.log("Location available");
+                updateMarker(data.lat, data.lon, data.uncertainty, 15);
+            }
         })
         .catch(error => {
             console.error(error.message);
-            if (fetchAttempts < maxAttempts) {
+            if (attempts_left > 1) {
                 setTimeout(() => {
-                    fetchLocation();
+                    fetchLocation(attempts_left - 1);
                 }, fetchInterval);
             }
         });
-
 }
 
-// Wait for the site to load before loading the 3D model
-window.addEventListener('load', function () {
-    var modelViewer = document.getElementById('transform');
-    modelViewer.setAttribute('src', modelViewer.getAttribute('data-src'));
-});
+async function postJWT(JWT) {
 
+    const payload = JSON.stringify({ "jwt": JWT });
+    console.log(payload);
+
+    try {
+        const response = await fetch("/jwt", { method: "POST", body: payload });
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+    }
+    catch (error) {
+        console.error(error.message);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Setup after the page loads
+////////////////////////////////////////////////////////////////////////////
+
+// Buttons
 window.addEventListener("DOMContentLoaded", (ev) => {
 
-    // document.querySelector('.color-picker-container img').addEventListener('click', function () {
-    //     document.getElementById('color_picker').click();
-    // });
-
-    // document.getElementById('color_picker').addEventListener('input', function (event) {
-    //     let color = event.target.value;
-    //     postRgbLed(color);
-    // });
-
-    fetchLocation();
-
+    // Setup the event listeners for the buttons
     document.getElementById('reset-orientation').addEventListener('click', function () {
         orientationQuat = { w: 1, x: 0, y: 0, z: 0 };
     });
+    document.getElementById('jwt-submit').addEventListener('click', async function () {
+        const jwt = document.getElementById('jwt-input').value;
+        document.getElementById("jwt-error").innerHTML = "";
 
+        postJWT(jwt);
+
+        // Clear the input field
+        document.getElementById('jwt-input').value = "";
+
+        // Restart the fetch attempts
+        await new Promise(r => setTimeout(r, 5000));
+        fetchLocation(5);
+    });
+
+    // attempt to fetch the location after boot
+    fetchLocation(1);
+
+});
+
+// WebSocket connection
+document.addEventListener('DOMContentLoaded', (event) => {
     /* Setup websocket for handling network stats */
     const ws = new WebSocket("/");
     ws.onopen = (event) => {
@@ -755,6 +808,7 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     });
 });
 
+// Color wheel
 document.addEventListener('DOMContentLoaded', (event) => {
     const colorWheel = document.getElementById('color_wheel');
     const colorPicker = document.getElementById('color_picker');

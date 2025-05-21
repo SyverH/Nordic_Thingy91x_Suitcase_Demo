@@ -33,9 +33,24 @@ void wifi_sta_set_wifi_connected_cb(void *cb)
 	wifi_connected_cb = cb;
 }
 
+///////////////////////////////////////////
+// Wi-Fi Scan
+///////////////////////////////////////////
+
 static uint32_t scan_result;
 
 char nrfcloud_api_str[CONFIG_WIFI_SCAN_STR_MAX_MAC_ADDR * 65] = {0};
+
+void get_nrfcloud_api_str(char *buf, size_t len)
+{
+	if (len > sizeof(nrfcloud_api_str)) {
+		len = sizeof(nrfcloud_api_str);
+		LOG_ERR("Buffer too small, truncating to %zu", len);
+	}
+
+	strncpy(buf, nrfcloud_api_str, len);
+	buf[len - 1] = '\0';
+}
 
 K_SEM_DEFINE(scan_sem, 0, 1);
 #define SCAN_TIMEOUT_MS 100000
@@ -335,9 +350,14 @@ void wifi_ready_cb(bool wifi_ready)
 }
 #endif /* CONFIG_WIFI_READY_LIB */
 
+//////////////////////////////////////////
+// net mgmt
+//////////////////////////////////////////
+
 void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event,
 			     struct net_if *iface)
 {
+    ARG_UNUSED(iface);
 
 	switch (mgmt_event) {
 	case NET_EVENT_WIFI_CONNECT_RESULT:
@@ -376,9 +396,12 @@ void print_dhcp_ip(struct net_mgmt_event_callback *cb)
 
 	LOG_INF("DHCP IP address: %s", dhcp_info);
 }
+
 void net_mgmt_event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event,
 			    struct net_if *iface)
 {
+    ARG_UNUSED(iface);
+
 	switch (mgmt_event) {
 	case NET_EVENT_IPV4_DHCP_BOUND:
 		print_dhcp_ip(cb);

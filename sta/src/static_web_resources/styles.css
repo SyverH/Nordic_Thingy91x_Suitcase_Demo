@@ -139,6 +139,20 @@ div {
     border: 1px solid #ccc; /* Optional: Add subtle border */
 }
 
+#JWT-input-div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 1vh;
+}
+
+#JWT-input-div input, 
+#JWT-input-div button {
+  width: 100%;
+  margin-bottom: 5px;
+}
+
 /* Sensor data */
 .sensor-section {
     margin-top: 0;
