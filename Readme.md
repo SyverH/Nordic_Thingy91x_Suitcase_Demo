@@ -24,30 +24,28 @@ SW:
 
 Optional:
 - USB-C cable for logging, and net shell.
+- FW is available as a .hex
 
 ## Configuration 
 ### User Configurations
-The settings for this demo are defined in the `prj.conf` file.
-The JWT token is stored in the git-hidden file JWT_token.h to avoid accidental publication.
-
-To necessary settings to run the demo:
-- Enter your Wi-Fi credentials (SSID and Password) in `prj.conf`
+Necessary settings to run the demo:
+- Provision your network credentials with **net shell**
 - For easy connection in the browser, define the hostname in `prj.conf`
-- Add your JWT (JSON Web Token) for authentication in `JWT_token.h`
+- Add your JWT token on the website after its set up.
 
-Network connections can also be managed dynamically using **net shell**.
+#### Net shell credentials example
+```
+wifi_cred add -s <SSID> -k 1 -p <PASSWORD>
+```
+-k 1 is equal to WPA2-PSK
+```
+wifi_cred auto_connect
+```
+
 
 **prj.conf changes**
 ```Cmake
-CONFIG_WIFI_CREDENTIALS_STATIC_SSID="YourSSID"
-CONFIG_WIFI_CREDENTIALS_STATIC_PASSWORD="YourPassword"
-
 CONFIG_NET_HOSTNAME="thingy91x"
-```
-
-**JWT_token.h changes**
-```c
-#define AUTH_TOKEN "Your Token"
 ```
 
 ### Generating and Updating Network Certificates
@@ -70,11 +68,4 @@ west build -p -b thingy91x/nrf5340/cpuapp
 west flash --erase
 ```
 
-## TODO
-- [ ] implement wifi provisioning
-- [ ] implement secure web server
-- [ ] add option to run as a softAP
-- [x] implement wifi positioning
-- [ ] implement bmm350 magnetometer (waiting for driver in zephyr)
-- [x] implement mDNS
-- [x] implement rgb led control
+The application can also be uploaded as a .hex.
