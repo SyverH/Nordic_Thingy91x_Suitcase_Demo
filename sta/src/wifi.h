@@ -19,3 +19,4 @@ void net_mgmt_callback_init(void);
 int register_wifi_ready(void);
 
 int wifi_scan(void);
+void get_nrfcloud_api_str(char *buf, size_t len);

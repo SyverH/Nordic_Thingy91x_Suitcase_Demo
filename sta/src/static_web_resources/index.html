@@ -21,31 +21,6 @@
         <img src="Logo_Flat_RGB_Horizontal.svg" alt="logo" class="logo">
         <div class="header-text">Thingy91X WiFi Demo</div>
     </div>
-
-    <!-- <div class="top-container">
-        <div class="led-control">
-            <h2>PWM LED Control</h2>
-            <div class="led-control-container">
-                <div class="led-control-set">
-                    <div class="color-picker-container">
-                        <img src="color_wheel.svg" alt="Color Spectrum" class="color-spectrum">
-                        <input type="color" id="color_picker" value="#000000">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="model-container">
-            <h2>3D Model</h2>
-            <div class="model-container">
-                 <model-viewer id="transform" alt="A 3D model of the Thingy91x" data-src="thingy91x.glb" ></model-viewer>
-            </div>
-            <div class="orientaton-controll-container">
-                <button id="reset-orientation-button" title="Click to reset the 3D model orientation">Reset Orientation</button>
-            </div>
-        </div>
-    </div> -->
-
     <div class="top-container">
         <div class="led-control-container">
             <h2>PWM LED Control</h2>
@@ -65,6 +40,11 @@
         <div class="map-container">
             <h2>WiFi SSID Location</h2>
             <div id="map"></div>
+            <div id="JWT-input-div">
+                <input type="text" id="jwt-input" placeholder="Enter JWT Token">
+                <button id="jwt-submit">Request Location</button>
+                <span id="jwt-error" class="error-message"></span>
+            </div>
         </div>
     </div>
 
