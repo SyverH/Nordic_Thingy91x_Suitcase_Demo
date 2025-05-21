@@ -219,7 +219,6 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 			*end_of_code = '\0'; // Temporarily terminate the string
 			LOG_WRN("HTTP Response Code: %s\n", response_code);
 			http_response_code = atoi(response_code);
-			LOG_WRN("HTTP Response Code num: %d\n", http_response_code);
 			*end_of_code = ' '; // Restore the space
 		} else {
 			LOG_ERR("Could not find end of HTTP response code.\n");
@@ -231,12 +230,12 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 	char *header_end = strstr(recv_buf, "\r\n\r\n"); // Locate the end of headers
 	if (header_end) {
 		LOG_INF("========================================");
-		LOG_INF("\nHTTP Headers:\n");
+		LOG_INF("HTTP Headers:");
 		*header_end = '\0';        // Temporarily terminate at the end of headers
-		LOG_INF("%s\n", recv_buf); // Print headers
+		LOG_INF("\n%s\n", recv_buf); // Print headers
 		LOG_INF("========================================");
-		LOG_INF("\nHTTP Body:\n");
-		LOG_INF("%s\n", header_end + 4); // Print the body after separating headers
+		LOG_INF("HTTP Body:");
+		LOG_INF("\n%s\n", header_end + 4); // Print the body after separating headers
 		LOG_INF("========================================");
 	} else {
 		LOG_WRN("Could not find end of headers.\n");

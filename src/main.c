@@ -302,8 +302,6 @@ static void parse_jwt_post(uint8_t *buf, size_t len)
 	// Remove trailing "}
 	temp_buff[ret - 2] = '\0';
 
-	LOG_WRN("Temp buffer: %s", temp_buff);
-
 	char location_str[256];
 	memset(location_str, 0, sizeof(location_str));
 
@@ -312,8 +310,6 @@ static void parse_jwt_post(uint8_t *buf, size_t len)
 	get_nrfcloud_api_str(api_str, sizeof(api_str));
 
 	send_http_request(location_str, sizeof(location_str), api_str, sizeof(api_str), temp_buff);
-
-	LOG_WRN("Location string: %s", location_str);
 
 	http_resources_set_location(location_str);
 
@@ -332,8 +328,6 @@ static int jwt_handler(struct http_client_ctx *client, enum http_data_status sta
 
 	static uint8_t post_payload_buf[512];
 	static size_t cursor;
-
-	LOG_WRN("JWT handler status %d, size %zu", status, len);
 
 	if (status == HTTP_SERVER_DATA_ABORTED) {
 		cursor = 0;
@@ -381,9 +375,6 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
 static void wifi_connected_handler(void)
 {
 	LOG_INF("Wi-Fi connected");
-
-	// Print Thread name
-	LOG_WRN("Thread name: %s\n", k_thread_name_get(k_current_get()));
 
 	LOG_INF("HTTP server staring");
 	http_server_start();

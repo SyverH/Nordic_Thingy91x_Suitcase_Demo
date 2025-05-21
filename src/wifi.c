@@ -271,7 +271,7 @@ int wifi_connect(void)
 		return -ENOEXEC;
 	}
 
-	LOG_INF("Connection requested");
+	// LOG_INF("Connection requested");
 
 	return 0;
 }
