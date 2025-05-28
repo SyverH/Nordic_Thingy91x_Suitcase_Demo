@@ -350,6 +350,8 @@ static int jwt_handler(struct http_client_ctx *client, enum http_data_status sta
 
 	if (status == HTTP_SERVER_DATA_FINAL) {
 		parse_jwt_post(post_payload_buf, cursor);
+		memset(post_payload_buf, 0, sizeof(post_payload_buf));
+		// Clear the buffer after processing
 		cursor = 0;
 	}
 

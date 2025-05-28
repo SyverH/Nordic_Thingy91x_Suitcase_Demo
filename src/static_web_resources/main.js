@@ -659,6 +659,11 @@ async function postRgbLed(hex_color) {
     let g = parseInt(hex_color[1]);
     let b = parseInt(hex_color[2]);
 
+    if((isNaN(r) || isNaN(g) || isNaN(b)) || (r === 0 && g === 0 && b === 0)) {
+        // console.error("Invalid RGB values:", r, g, b);
+        return;
+    }
+
     try {
         const payload = JSON.stringify({ "r": r, "g": g, "b": b });
 
@@ -702,6 +707,7 @@ function fetchLocation(attempts_left) {
 
             } else if (data.lat !== undefined && data.lon !== undefined && data.uncertainty !== undefined) {
                 console.log("Location available");
+                document.getElementById("jwt-error").innerHTML = "Location fetched successfully";
                 updateMarker(data.lat, data.lon, data.uncertainty, 15);
             }
         })
@@ -718,7 +724,7 @@ function fetchLocation(attempts_left) {
 async function postJWT(JWT) {
 
     const payload = JSON.stringify({ "jwt": JWT });
-    console.log(payload);
+    // console.log(payload);
 
     try {
         const response = await fetch("/jwt", { method: "POST", body: payload });
@@ -744,12 +750,18 @@ window.addEventListener("DOMContentLoaded", (ev) => {
     });
     document.getElementById('jwt-submit').addEventListener('click', async function () {
         const jwt = document.getElementById('jwt-input').value;
-        document.getElementById("jwt-error").innerHTML = "";
+
+        // Clear previous error message and input field
+        document.getElementById("jwt-error").innerHTML = "Fetching location...";
+        document.getElementById('jwt-input').value = "";
+
+        if (jwt === "") {
+            document.getElementById("jwt-error").innerHTML = "Please enter a JWT";
+            return;
+        }
 
         postJWT(jwt);
 
-        // Clear the input field
-        document.getElementById('jwt-input').value = "";
 
         // Restart the fetch attempts
         await new Promise(r => setTimeout(r, 5000));

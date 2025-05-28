@@ -174,7 +174,7 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 	}
 
 	// Debug: Print HTTP request content
-	LOG_INF("\nHTTP Request:\n%s\n", send_buf);
+	LOG_INF("%s\n", send_buf);
 
 	off = 0;
 	do {
@@ -187,7 +187,7 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 		off += bytes;
 	} while (off < header_len);
 
-	LOG_INF("Sent %d bytes\n", off);
+	// LOG_INF("Sent %d bytes\n", off);
 
 	off = 0;
 	do {
@@ -200,7 +200,7 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 
 	} while (bytes != 0 /* peer closed connection */);
 
-	LOG_INF("Received %d bytes\n", off);
+	// LOG_INF("Received %d bytes\n", off);
 
 	/* Make sure recv_buf is NULL terminated (for safe use with strstr) */
 	if (off < sizeof(recv_buf)) {
@@ -217,7 +217,7 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 		char *end_of_code = strstr(response_code, " ");
 		if (end_of_code) {
 			*end_of_code = '\0'; // Temporarily terminate the string
-			LOG_WRN("HTTP Response Code: %s\n", response_code);
+			// LOG_WRN("HTTP Response Code: %s\n", response_code);
 			http_response_code = atoi(response_code);
 			*end_of_code = ' '; // Restore the space
 		} else {
@@ -232,10 +232,10 @@ void send_http_request(char *location_str, size_t location_str_len, char *api_st
 		LOG_INF("========================================");
 		LOG_INF("HTTP Headers:");
 		*header_end = '\0';        // Temporarily terminate at the end of headers
-		LOG_INF("\n%s\n", recv_buf); // Print headers
+		LOG_INF("%s\n", recv_buf); // Print headers
 		LOG_INF("========================================");
 		LOG_INF("HTTP Body:");
-		LOG_INF("\n%s\n", header_end + 4); // Print the body after separating headers
+		LOG_INF("%s\n", header_end + 4); // Print the body after separating headers
 		LOG_INF("========================================");
 	} else {
 		LOG_WRN("Could not find end of headers.\n");
